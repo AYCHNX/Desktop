@@ -20,6 +20,7 @@
 #include "progressdispatcher.h"
 #include "owncloudsetupwizard.h"
 #include "sharedialog.h"
+#include "configfile.h"
 #if defined(Q_OS_MAC)
 #include "settingsdialogmac.h"
 #include "macwindow.h" // qtmacgoodies
@@ -686,9 +687,25 @@ void ownCloudGui::slotShowTrayMessage(const QString &title, const QString &msg)
         qCWarning(lcApplication) << "Tray not ready: " << msg;
 }
 
+void ownCloudGui::slotShowTrayNotification(const QString &title, const QString &msg, const QStringList &actions)
+{
+    if (_tray)
+        _tray->showMessage(title, msg, actions);
+    else
+        qCWarning(lcApplication) << "Tray not ready: " << msg;
+}
+
 void ownCloudGui::slotShowOptionalTrayMessage(const QString &title, const QString &msg)
 {
     slotShowTrayMessage(title, msg);
+}
+
+void ownCloudGui::slotShowOptionalTrayNotification(const QString &title, const QString &msg, const QStringList &actions)
+{
+    ConfigFile cfg;
+    if (cfg.optionalServerNotifications()) {
+        slotShowTrayNotification(title, msg, actions);
+    }
 }
 
 

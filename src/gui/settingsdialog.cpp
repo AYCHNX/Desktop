@@ -94,6 +94,8 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     _toolBar->addAction(_activityAction);
     _activitySettings = new ActivitySettings;
     _ui->stack->addWidget(_activitySettings);
+    connect(_activitySettings, &ActivitySettings::notify, _gui,
+        &ownCloudGui::slotShowOptionalTrayNotification);
     connect(_activitySettings, &ActivitySettings::guiLog, _gui,
         &ownCloudGui::slotShowOptionalTrayMessage);
     _activitySettings->setNotificationRefreshInterval(cfg.notificationRefreshInterval());

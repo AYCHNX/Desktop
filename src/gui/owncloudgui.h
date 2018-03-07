@@ -74,8 +74,10 @@ public slots:
     void slotContextMenuAboutToShow();
     void slotContextMenuAboutToHide();
     void slotComputeOverallSyncStatus();
+    void slotShowTrayNotification(const QString &title, const QString &msg, const QStringList &actions);
     void slotShowTrayMessage(const QString &title, const QString &msg);
     void slotShowOptionalTrayMessage(const QString &title, const QString &msg);
+    void slotShowOptionalTrayNotification(const QString &title, const QString &msg, const QStringList &actions);
     void slotFolderOpenAction(const QString &alias);
     void slotRebuildRecentMenus();
     void slotUpdateProgress(const QString &folder, const ProgressInfo &progress);

@@ -80,6 +80,7 @@ public slots:
 
 signals:
     void guiLog(const QString &, const QString &);
+    void notify(const QString &, const QString &, const QStringList &);
     void copyToClipboard();
     void rowsInserted();
     void hideActivityTab(bool);
@@ -150,6 +151,7 @@ private slots:
 
 signals:
     void guiLog(const QString &, const QString &);
+    void notify(const QString &, const QString &, const QStringList &);
 
 private:
     bool event(QEvent *e) Q_DECL_OVERRIDE;
