@@ -15,6 +15,7 @@
 #include "systray.h"
 #include "theme.h"
 #include "config.h"
+#include <QDebug>
 
 #ifdef USE_FDO_NOTIFICATIONS
 #include <QDBusConnection>
@@ -28,13 +29,19 @@
 
 namespace OCC {
 
-void Systray::showMessage(const QString &title, const QString &message, MessageIcon icon, int millisecondsTimeoutHint)
+void Systray::showMessage(const QString &title, const QString &message, const QStringList &actions, MessageIcon icon, int millisecondsTimeoutHint)
 {
 #ifdef USE_FDO_NOTIFICATIONS
     if(QDBusInterface(NOTIFICATIONS_SERVICE, NOTIFICATIONS_PATH, NOTIFICATIONS_IFACE).isValid()) {
+        foreach (QString action, actions) {
+            qDebug() << "ACTION:" << action;
+        }
         QList<QVariant> args = QList<QVariant>() << APPLICATION_NAME << quint32(0) << APPLICATION_ICON_NAME
-                                                 << title << message << QStringList() << QVariantMap() << qint32(-1);
-        QDBusMessage method = QDBusMessage::createMethodCall(NOTIFICATIONS_SERVICE, NOTIFICATIONS_PATH, NOTIFICATIONS_IFACE, "Notify");
+                                                 << title << message << actions << QVariantMap() << qint32(-1);
+        QDBusMessage method = QDBusMessage::createMethodCall(NOTIFICATIONS_SERVICE, NOTIFICATIONS_PATH, NOTIFICATIONS_IFACE,
+                                                             "Notify");
+        QDBusConnection::sessionBus().connect(NOTIFICATIONS_SERVICE, NOTIFICATIONS_PATH, NOTIFICATIONS_IFACE,
+                                          "ActionInvoked", this, SLOT(slotActionInvoked(uint,QString)));
         method.setArguments(args);
         QDBusConnection::sessionBus().asyncCall(method);
     } else
@@ -47,6 +54,11 @@ void Systray::showMessage(const QString &title, const QString &message, MessageI
     {
         QSystemTrayIcon::showMessage(title, message, icon, millisecondsTimeoutHint);
     }
+}
+
+void Systray::slotActionInvoked(uint id, QString action_key)
+{
+    emit actionInvoked(id, action_key);
 }
 
 void Systray::setToolTip(const QString &tip)

@@ -34,8 +34,15 @@ class Systray : public QSystemTrayIcon
 {
     Q_OBJECT
 public:
-    void showMessage(const QString &title, const QString &message, MessageIcon icon = Information, int millisecondsTimeoutHint = 10000);
+    void showMessage(const QString &title, const QString &message, const QStringList &actions = QStringList(), MessageIcon icon = Information, int millisecondsTimeoutHint = 10000);
     void setToolTip(const QString &tip);
+
+signals:
+    void actionInvoked(uint id, QString action_key);
+
+private slots:
+    void slotActionInvoked(uint id, QString action_key);
+
 };
 
 } // namespace OCC
