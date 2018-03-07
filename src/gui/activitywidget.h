@@ -104,7 +104,7 @@ private:
     QSet<QString> _accountsWithoutActivities;
     QMap<Activity::Identifier, NotificationWidget *> _widgetForNotifId;
     QElapsedTimer _guiLogTimer;
-    QSet<int> _guiLoggedNotifications;
+    ActivityList _guiLoggedNotifications;
     ActivityList _blacklistedNotifications;
 
     QHash<NotificationWidget *, QDateTime> _widgetsToRemove;

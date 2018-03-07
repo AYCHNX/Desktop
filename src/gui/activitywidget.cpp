@@ -287,7 +287,7 @@ void ActivityWidget::slotBuildNotificationDisplay(const ActivityList &list)
         if (_guiLogTimer.elapsed() > 60 * 60 * 1000) {
             _guiLoggedNotifications.clear();
         }
-        if (!_guiLoggedNotifications.contains(activity._id)) {
+        if (!_guiLoggedNotifications.contains(activity)) {
             QString host = activity._accName;
             // store the name of the account that sends the notification to be
             // able to add it to the tray notification
@@ -303,7 +303,7 @@ void ActivityWidget::slotBuildNotificationDisplay(const ActivityList &list)
                     accNotified[host] = 1;
                 }
             }
-            _guiLoggedNotifications.insert(activity._id);
+            _guiLoggedNotifications.append(activity);
 
             // Assemble a tray notification for the NEW notification
             ConfigFile cfg;
@@ -311,11 +311,11 @@ void ActivityWidget::slotBuildNotificationDisplay(const ActivityList &list)
 
                 QStringList actions;
                 foreach (ActivityLink link, activity._links) {
-                   actions << link._link << link._label;
+                   actions << QString::number(activity._id) << link._label;
                 }
 
                 if(!activity._link.isEmpty())
-                    actions << activity._link.toString() << "More Information";
+                    actions << QString::number(activity._id) << "More Information";
 
                 if(AccountManager::instance()->accounts().count() == 1){
                     emit notify(activity._subject, "", actions);
