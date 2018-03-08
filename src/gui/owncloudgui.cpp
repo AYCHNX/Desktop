@@ -90,6 +90,9 @@ ownCloudGui::ownCloudGui(Application *parent)
     connect(_tray.data(), &QSystemTrayIcon::activated,
         this, &ownCloudGui::slotTrayClicked);
 
+    connect(_tray.data(), &Systray::actionInvoked,
+        this, &ownCloudGui::actionInvoked);
+
     setupActions();
     setupContextMenu();
 

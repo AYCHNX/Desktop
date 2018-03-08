@@ -66,6 +66,8 @@ public:
 signals:
     void setupProxy();
     void serverError(int code, const QString &message);
+    void actionInvoked(uint id, QString action_key);
+
 
 public slots:
     void setupContextMenu();

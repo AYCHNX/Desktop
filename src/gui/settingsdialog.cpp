@@ -98,6 +98,8 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
         &ownCloudGui::slotShowOptionalTrayNotification);
     connect(_activitySettings, &ActivitySettings::guiLog, _gui,
         &ownCloudGui::slotShowOptionalTrayMessage);
+    connect(_gui, &ownCloudGui::actionInvoked, _activitySettings,
+        &ActivitySettings::actionInvoked);
     _activitySettings->setNotificationRefreshInterval(cfg.notificationRefreshInterval());
 
     QAction *generalAction = createColorAwareAction(QLatin1String(":/client/resources/settings.png"), tr("General"));

@@ -310,12 +310,23 @@ void ActivityWidget::slotBuildNotificationDisplay(const ActivityList &list)
             if(cfg.optionalServerNotifications()){
 
                 QStringList actions;
+                // QStringList() = admin,22,DELETE,https://cloud.nextcloud.com/index.php/apps/files/?dir=/&fileid=7
                 foreach (ActivityLink link, activity._links) {
-                   actions << QString::number(activity._id) << link._label;
+                   actions << (QStringList() << activity._accName
+                                             << QString::number(activity._id)
+                                             << link._link
+                                             << link._verb
+                               ).join(",")
+                           << link._label;
                 }
 
                 if(!activity._link.isEmpty())
-                    actions << QString::number(activity._id) << "More Information";
+                    actions << (QStringList() << activity._accName
+                                              << QString::number(activity._id)
+                                              << activity._link.toString()
+                                              << "VIEW"
+                                ).join(",")
+                            << "More Information";
 
                 if(AccountManager::instance()->accounts().count() == 1){
                     emit notify(activity._subject, "", actions);
@@ -366,6 +377,51 @@ void ActivityWidget::slotBuildNotificationDisplay(const ActivityList &list)
     }
 }
 
+void ActivityWidget::slotActionInvoked(uint id, QString action_key)
+{
+    // QStringList() = admin,22,https://cloud.nextcloud.com/index.php/apps/files/?dir=/&fileid=7,DELETE
+    QStringList actionItems = action_key.split(",");
+
+    qCInfo(lcActivity) << "Action invoked on tray message notification"
+                       << id
+                       << "- user account"
+                       << actionItems.first()
+                       << "- activity id"
+                       << actionItems.at(1)
+                       << "- activity link"
+                       << actionItems.at(2)
+                       << "- verb"
+                       << actionItems.last();
+
+    if(actionItems.last() == "VIEW"){
+        QDesktopServices::openUrl(QUrl(actionItems.at(2)));
+     } else {
+        NotificationWidget *theSender;
+        foreach (Activity act, _guiLoggedNotifications) {
+            if(act._id == actionItems.at(1).toInt()){
+                theSender = _widgetForNotifId[act.ident()];
+                break;
+            }
+        }
+        AccountStatePtr acc = AccountManager::instance()->account(actionItems.first());
+        if (acc) {
+            NotificationConfirmJob *job = new NotificationConfirmJob(acc->account());
+            QUrl link(actionItems.at(2));
+            job->setLinkAndVerb(link, actionItems.last().toUtf8());
+            if(theSender) job->setWidget(theSender);
+            connect(job, &AbstractNetworkJob::networkError,
+                this, &ActivityWidget::slotNotifyNetworkError);
+            connect(job, &NotificationConfirmJob::jobFinished,
+                this, &ActivityWidget::slotNotifyServerFinished);
+            job->start();
+
+            // count the number of running notification requests. If this member var
+            // is larger than zero, no new fetching of notifications is started
+            _notificationRequestsRunning++;
+        }
+    }
+}
+
 void ActivityWidget::slotSendNotificationRequest(const QString &accountName, const QString &link, const QByteArray &verb)
 {
     qCInfo(lcActivity) << "Server Notification Request " << verb << link << "on account" << accountName;
@@ -382,7 +438,7 @@ void ActivityWidget::slotSendNotificationRequest(const QString &accountName, con
             NotificationConfirmJob *job = new NotificationConfirmJob(acc->account());
             QUrl l(link);
             job->setLinkAndVerb(l, verb);
-            job->setWidget(theSender);
+            if(theSender) job->setWidget(theSender);
             connect(job, &AbstractNetworkJob::networkError,
                 this, &ActivityWidget::slotNotifyNetworkError);
             connect(job, &NotificationConfirmJob::jobFinished,
@@ -516,6 +572,8 @@ ActivitySettings::ActivitySettings(QWidget *parent)
     connect(_activityWidget, &ActivityWidget::guiLog, this, &ActivitySettings::guiLog);
     connect(_activityWidget, &ActivityWidget::notify, this, &ActivitySettings::notify);
     connect(_activityWidget, &ActivityWidget::newNotification, this, &ActivitySettings::slotShowActivityTab);
+
+    connect(this, &ActivitySettings::actionInvoked, _activityWidget, &ActivityWidget::slotActionInvoked);
 
     _protocolWidget = new ProtocolWidget(this);
     _protocolTabId = _tab->addTab(_protocolWidget, Theme::instance()->syncStateIcon(SyncResult::Success), tr("Sync Protocol"));

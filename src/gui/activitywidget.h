@@ -77,6 +77,7 @@ public slots:
     void slotRemoveAccount(AccountState *ptr);
     void slotAccountActivityStatus(AccountState *ast, int statusCode);
     void slotRequestCleanupAndBlacklist(const Activity &blacklistActivity);
+    void slotActionInvoked(uint id, QString action_key);
 
 signals:
     void guiLog(const QString &, const QString &);
@@ -152,6 +153,7 @@ private slots:
 signals:
     void guiLog(const QString &, const QString &);
     void notify(const QString &, const QString &, const QStringList &);
+    void actionInvoked(uint id, QString action_key);
 
 private:
     bool event(QEvent *e) Q_DECL_OVERRIDE;
