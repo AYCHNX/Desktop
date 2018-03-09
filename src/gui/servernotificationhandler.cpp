@@ -59,6 +59,9 @@ void ServerNotificationHandler::slotFetchNotifications(AccountState *ptr)
         this, &ServerNotificationHandler::slotEtagResponseHeaderReceived);
     _notificationJob->setProperty(propertyAccountStateC, QVariant::fromValue<AccountState *>(ptr));
     _notificationJob->addRawHeader("If-None-Match", ptr->notificationsEtagResponseHeader());
+    QUrlQuery params;
+    params.addQueryItem("absolute", "true");
+    _notificationJob->addQueryParams(params);
     _notificationJob->start();
 }
 
