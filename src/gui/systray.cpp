@@ -36,6 +36,7 @@ void Systray::showMessage(const QString &title, const QString &message, const QS
         foreach (QString action, actions) {
             qDebug() << "ACTION:" << action;
         }
+        qDebug() << "MESSAGE:" << message;
         QList<QVariant> args = QList<QVariant>() << APPLICATION_NAME << quint32(0) << APPLICATION_ICON_NAME
                                                  << title << message << actions << QVariantMap() << qint32(-1);
         QDBusMessage method = QDBusMessage::createMethodCall(NOTIFICATIONS_SERVICE, NOTIFICATIONS_PATH, NOTIFICATIONS_IFACE,
@@ -44,6 +45,13 @@ void Systray::showMessage(const QString &title, const QString &message, const QS
                                           "ActionInvoked", this, SLOT(slotActionInvoked(uint,QString)));
         method.setArguments(args);
         QDBusConnection::sessionBus().asyncCall(method);
+        QDBusMessage method2 = QDBusMessage::createMethodCall(NOTIFICATIONS_SERVICE, NOTIFICATIONS_PATH, NOTIFICATIONS_IFACE,
+                                                             "GetCapabilities");
+        QDBusPendingCall call = QDBusConnection::sessionBus().asyncCall(method2);
+        QDBusPendingCallWatcher *watcher = new QDBusPendingCallWatcher(call, this);
+
+        connect(watcher, SIGNAL(finished(QDBusPendingCallWatcher*)),
+                 this, SLOT(asyncCallFinished(QDBusPendingCallWatcher*)));
     } else
 #endif
 #ifdef Q_OS_OSX
@@ -54,6 +62,12 @@ void Systray::showMessage(const QString &title, const QString &message, const QS
     {
         QSystemTrayIcon::showMessage(title, message, icon, millisecondsTimeoutHint);
     }
+}
+
+void Systray::asyncCallFinished(QDBusPendingCallWatcher *watcher)
+{
+    QDBusMessage m = watcher->reply();
+    qDebug() << "asyncCallFinished" << m;
 }
 
 void Systray::slotActionInvoked(uint id, QString action_key)

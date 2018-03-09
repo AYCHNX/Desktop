@@ -16,6 +16,7 @@
 #define SYSTRAY_H
 
 #include <QSystemTrayIcon>
+#include <QDBusPendingCallWatcher>
 
 class QIcon;
 
@@ -42,6 +43,7 @@ signals:
 
 private slots:
     void slotActionInvoked(uint id, QString action_key);
+    void asyncCallFinished(QDBusPendingCallWatcher *watcher);
 
 };
 
