@@ -17,6 +17,8 @@
 #include "fileManager.h"
 #include "discoveryphase.h"
 
+#include <unistd.h>
+
 #include <sys/param.h>
 #include <sys/mount.h>
 #include <sys/ioctl.h>
