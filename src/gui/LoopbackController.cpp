@@ -83,7 +83,7 @@ LoopbackController::LoopbackController(QString rootPath, QString mountPath, OCC:
     // would be mounting an HFS+ directory through LoopbackFS, so we do want
     // this option in that case.
     options.append("native_xattr");
-    
+    options.append("auto_cache");
     options.append("volname=LoopbackFS");
     fs_->mountAtPath(mountPath, options);
 }
