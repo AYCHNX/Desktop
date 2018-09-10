@@ -743,12 +743,12 @@ bool removeDirs(const QString & dirName)
 
 void Application::slotDeleteOnlineFiles()
 {
-	qDebug() << Q_FUNC_INFO << " 01: " << SyncJournalDb::instance()->databaseFilePath();
+	//qDebug() << Q_FUNC_INFO << " 01: " << SyncJournalDb::instance()->databaseFilePath();
 
 	//< Get paths SyncMode table.
-	QList<QString> list = SyncJournalDb::instance()->getSyncModePaths();
+	//QList<QString> list = SyncJournalDb::instance()->getSyncModePaths();
 	
-	if ( ! list.empty() )
+	/*if ( ! list.empty() )
 	{
 		qDebug() << Q_FUNC_INFO << " 02";
 
@@ -757,12 +757,12 @@ void Application::slotDeleteOnlineFiles()
 		{
 			qDebug() << Q_FUNC_INFO << " 03";
 
-			qint64 m_secondsSinceLastAccess = SyncJournalDb::instance()->secondsSinceLastAccess(item);
-			SyncJournalDb::SyncMode mode = SyncJournalDb::instance()->getSyncMode(item);
+			//qint64 m_secondsSinceLastAccess = SyncJournalDb::instance()->secondsSinceLastAccess(item);
+			//SyncJournalDb::SyncMode mode = SyncJournalDb::instance()->getSyncMode(item);
 
 			qDebug() << Q_FUNC_INFO << " 04";
 
-			SyncJournalDb::SyncModeDownload down = SyncJournalDb::instance()->getSyncModeDownload(item);
+			//SyncJournalDb::SyncModeDownload down = SyncJournalDb::instance()->getSyncModeDownload(item);
 
 			qDebug() << Q_FUNC_INFO << " 05";
 
@@ -803,10 +803,10 @@ void Application::slotDeleteOnlineFiles()
 					if (file2.open(QIODevice::ReadWrite))
 						file2.close();
 				}
-			SyncJournalDb::instance()->deleteSyncMode(item);
+			//SyncJournalDb::instance()->deleteSyncMode(item);
 			}
 		}
-	}
+	}*/
 }
 
 bool Application::giveHelp()

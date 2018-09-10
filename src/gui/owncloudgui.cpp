@@ -73,6 +73,9 @@ ownCloudGui::ownCloudGui(Application *parent)
     , _bus(QDBusConnection::sessionBus())
 #endif
     , _recentActionsMenu(nullptr)
+    , _qdbusmenuWorkaround(false)
+    ,_folderOpenActionMapper(new QSignalMapper(this))
+    ,_recentItemsMapper(new QSignalMapper(this))
     , _app(parent)
 {
     _tray = new Systray();
