@@ -80,9 +80,6 @@ ownCloudGui::ownCloudGui(Application *parent)
     , _bus(QDBusConnection::sessionBus())
 #endif
     , _recentActionsMenu(nullptr)
-    , _qdbusmenuWorkaround(false)
-    ,_folderOpenActionMapper(new QSignalMapper(this))
-    ,_recentItemsMapper(new QSignalMapper(this))
     , _app(parent)
 {
     _tray = new Systray();
@@ -98,13 +95,6 @@ ownCloudGui::ownCloudGui(Application *parent)
     setupContextMenu();
 
     _tray->show();
-
-    /* use a signal mapper to map the open requests to the alias names */
-    connect(_folderOpenActionMapper, SIGNAL(mapped(QString)),
-            this, SLOT(slotFolderOpenAction(QString)));
-
-    connect(_recentItemsMapper, SIGNAL(mapped(QString)),
-            this, SLOT(slotOpenPath(QString)));
 
     ProgressDispatcher *pd = ProgressDispatcher::instance();
     connect(pd, &ProgressDispatcher::progressInfo, this,

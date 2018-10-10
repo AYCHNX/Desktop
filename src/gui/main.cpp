@@ -48,12 +48,6 @@ int main(int argc, char **argv)
 {
     Q_INIT_RESOURCE(client);
 
-    // OpenSSL 1.1.0: No explicit initialisation or de-initialisation is necessary.
-    /* Initialise the library
-    ERR_load_crypto_strings();
-    OpenSSL_add_all_algorithms();
-    OPENSSL_config(NULL);*/
-
 #ifdef Q_OS_WIN
 // If the font size ratio is set on Windows, we need to
 // enable the auto pixelRatio in Qt since we don't

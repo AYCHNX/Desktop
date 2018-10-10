@@ -174,10 +174,6 @@ private:
     QMap<AccountStatePtr, QJsonArray> _navApps;
 
     QList<QAction *> _recentItemsActions;
-    
-    QSignalMapper *_folderOpenActionMapper;
-    QSignalMapper *_recentItemsMapper;
-    
     Application *_app;
 };
 
