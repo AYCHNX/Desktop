@@ -108,7 +108,8 @@ void Flow2AuthCredsPage::asyncAuthResult(Flow2Auth::Result r, const QString &use
 
 int Flow2AuthCredsPage::nextId() const
 {
-    return WizardCommon::Page_AdvancedSetup;
+    //return WizardCommon::Page_AdvancedSetup;
+	return 0;
 }
 
 void Flow2AuthCredsPage::setConnected()
