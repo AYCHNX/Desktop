@@ -32,6 +32,9 @@
 
 #include <sys/ioctl.h>
 
+//OCC
+#include "wrapper.h"
+
 class InternalVfsMac : public QObject
 {
 private:
@@ -231,6 +234,10 @@ void VfsMac::waitUntilMounted (int fileDescriptor)
             userInfo.insert(kGMUserFileSystemMountPathKey, internal_->mountPath());
             
             emit FuseFileSystemDidMount(userInfo);
+
+            //Only the upper most folder
+            OCC::Wrapper::addFolder();
+
             return;
         }
         usleep(kWaitForMountUSleepInterval);
@@ -559,64 +566,103 @@ QString VfsMac::destinationOfSymbolicLinkAtPath(QString path, QVariantMap &error
 #pragma mark Directory Contents
 
 void VfsMac::folderFileListFinish(OCC::DiscoveryDirectoryResult *dr)
-{
+{  
     if(dr)
     {
-        QString ruta = dr->path;
-        _fileListMap.insert(dr->path, dr);
-    }
-    else
-        qDebug() << "Error al obtener los resultados, viene nulo";
+          _fileListMap.insert(dr->path, dr);
+
+//        QStringList *contents = contentsOfDirectoryAtPath(dr->path, _error);
+//        if (contents)
+//        {
+//            for (int i = 0, count = contents->length(); i < count; i++)
+//                _filler(_buf, contents->at(i).toLatin1().data(), nullptr, 0);
+//        }
+
+        //sync to cache
+//        struct DiscoveryDirectoryResult
+//        {
+//            QString path;
+//            QString msg;
+//            int code;
+//            std::deque<std::unique_ptr<csync_file_stat_t>> list;
+//            DiscoveryDirectoryResult()
+//                : code(EIO)
+//            {
+//            }
+//        };
+        QStringList contents = QStringList();
+        if(!_fileListMap.value(dr->path)->list.empty()){
+            for(unsigned long i=0; i <_fileListMap.value(dr->path)->list.size(); i++)
+            {
+                QString completePath = rootPath_ + (dr->path.endsWith("/")? dr->path:(dr->path +"/")) +
+                        QString::fromLatin1(_fileListMap.value(dr->path)->list.at(i)->path);
+                QFileInfo fi(completePath);
+
+                //if the file doesn't exit, store it to download later
+                if (!fi.exists()) contents << _fileListMap.value(dr->path)->list.at(i)->path;
+            }
+        }
+
+        if(!contents.isEmpty()) OCC::Wrapper::download(contents);
+
+    } else qDebug() << "Directory result is null.";
+}
+
+void VfsMac::getRemoteFileList(QString path, QVariantMap &error){
+    // _remotefileListJob->start(path);
+    _error = error;
+    emit startRemoteFileListJob(path);
+
+//    while (!_fileListMap.contains(path))
+//    {
+//        qDebug() << Q_FUNC_INFO << "looking for " << path << "in keys: " << _fileListMap.keys();
+//        qDebug() << Q_FUNC_INFO << "looking for " << path << "in values: " << _fileListMap.values();
+//        usleep(kWaitForMountUSleepInterval);
+//    }
 }
 
 QStringList *VfsMac::contentsOfDirectoryAtPath(QString path, QVariantMap &error)
 {
-   // _remotefileListJob->start(path);
-    emit startRemoteFileListJob(path);
-    
-    while (!_fileListMap.contains(path))
-    {
-        qDebug() << Q_FUNC_INFO << "looking for " << path << "in: " << _fileListMap.keys();
-    }
-    
-    if(_fileListMap.value(path)->code != 0)
-    {
-        errorWithPosixCode(_fileListMap.value(path)->code);
-        return nullptr;
-    }
+//    if(_fileListMap.value(path)->code != 0)
+//    {
+//        errorWithPosixCode(_fileListMap.value(path)->code);
+//        return nullptr;
+//    }
     
     FileManager fm;
-    if(!_fileListMap.value(path)->list.empty())
-    {
-        for(unsigned long i=0; i <_fileListMap.value(path)->list.size(); i++)
-        {
-            QString completePath = rootPath_ + (path.endsWith("/")?path:(path+"/")) + QString::fromLatin1(_fileListMap.value(path)->list.at(i)->path);
-            QFileInfo fi(completePath);
-            if (!fi.exists())
-            {
-                if(_fileListMap.value(path)->list.at(i)->type == ItemTypeDirectory)
-                {
-                    unsigned long perm = 16877 & ALLPERMS;
-                    QVariantMap attribs;
-                    attribs.insert(FileManager::FMFilePosixPermissions, (long long)perm);
-                    fm.createDirectory(completePath, attribs, error);
-                }
-                else if (_fileListMap.value(path)->list.at(i)->type == ItemTypeFile)
-                {
-                    QVariant fd;
-                    unsigned long perm = ALLPERMS;
-                    QVariantMap attribs;
-                    attribs.insert(FileManager::FMFilePosixPermissions, (long long)perm);
-                    fm.createFileAtPath(completePath, attribs, fd, error);
-                    close(fd.toInt());
-                }
-            }
-    //        qDebug() << Q_FUNC_INFO << "results: " << r->name << r->type;
-        }
-    }
-    _fileListMap.remove(path);
+//    if(!_fileListMap.value(path)->list.empty())
+//    {
+//        for(unsigned long i=0; i <_fileListMap.value(path)->list.size(); i++)
+//        {
+//            QString completePath = rootPath_ + (path.endsWith("/")?path:(path+"/")) + QString::fromLatin1(_fileListMap.value(path)->list.at(i)->path);
+//            QFileInfo fi(completePath);
+//            if (!fi.exists())
+//            {
+//                if(_fileListMap.value(path)->list.at(i)->type == ItemTypeDirectory)
+//                {
+//                    unsigned long perm = 16877 & ALLPERMS;
+//                    QVariantMap attribs;
+//                    attribs.insert(FileManager::FMFilePosixPermissions, (long long)perm);
+//                    fm.createDirectory(completePath, attribs, error);
+//                }
+//                else if (_fileListMap.value(path)->list.at(i)->type == ItemTypeFile)
+//                {
+//                    QVariant fd;
+//                    unsigned long perm = ALLPERMS;
+//                    QVariantMap attribs;
+//                    attribs.insert(FileManager::FMFilePosixPermissions, (long long)perm);
+//                    fm.createFileAtPath(completePath, attribs, fd, error);
+//                    close(fd.toInt());
+//                }
+//            }
+//    //        qDebug() << Q_FUNC_INFO << "results: " << r->name << r->type;
+//        }
+//    }
+//    _fileListMap.remove(path);
     
     return new QStringList (fm.contentsOfDirectoryAtPath(rootPath_ + path, error));
+
+    //return new QStringList();
 }
 
 #pragma mark File Contents
@@ -624,9 +670,10 @@ QStringList *VfsMac::contentsOfDirectoryAtPath(QString path, QVariantMap &error)
 bool VfsMac::openFileAtPath(QString path, int mode, QVariant &userData, QVariantMap &error)
 {
     //Sync.
-    
-    
+    OCC::Wrapper::download(QStringList(path));
+
     QString p = rootPath_ + path;
+
     int fd = open(p.toLatin1().data(), mode);
     if ( fd < 0 ) {
         error = errorWithPosixCode(errno);
@@ -916,6 +963,22 @@ bool VfsMac::removeExtendedAttribute(QString name, QString path, QVariantMap &er
     return true;
 }
 
+void VfsMac::setBuf(void *buf){
+    _buf = buf;
+}
+
+void *VfsMac::getBuf(){
+    return _buf;
+}
+
+fuse_fill_dir_t VfsMac::getFiller(){
+    return _filler;
+}
+
+void VfsMac::setFiller(fuse_fill_dir_t filler){
+    _filler = filler;
+}
+
 #pragma mark FUSE Operations
 
 #define SET_CAPABILITY(conn, flag, enable)                                \
@@ -950,7 +1013,7 @@ static void* fusefm_init(struct fuse_conn_info* conn)
     SET_CAPABILITY(conn, FUSE_CAP_VOL_RENAME, fs->enableSetVolumeName());
     SET_CAPABILITY(conn, FUSE_CAP_CASE_INSENSITIVE, !fs->enableCaseSensitiveNames());
     SET_CAPABILITY(conn, FUSE_CAP_EXCHANGE_DATA, fs->enableExchangeData());
-    
+
     return fs;
 }
 
@@ -1128,16 +1191,18 @@ static int fusefm_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     try
     {
         VfsMac* fs = VfsMac::currentFS();
-        QStringList *contents =
-        fs->contentsOfDirectoryAtPath(QString::fromLatin1(path), error);
-        if (contents)
-        {
-            ret = 0;
-            /*filler(buf, ".", NULL, 0);
-            filler(buf, "..", NULL, 0);*/
-            for (int i = 0, count = contents->length(); i < count; i++)
-                filler(buf, contents->at(i).toLatin1().data(), NULL, 0);
-        }
+        fs->getRemoteFileList(QString::fromLatin1(path), error);
+        fs->setBuf(buf);
+        fs->setFiller(filler);
+        ret = 0;
+//        if (contents)
+//        {
+//            ret = 0;
+//            /*filler(buf, ".", NULL, 0);
+//            filler(buf, "..", NULL, 0);*/
+//            for (int i = 0, count = contents->length(); i < count; i++)
+//                filler(buf, contents->at(i).toLatin1().data(), NULL, 0);
+//        }
     }
     catch (QException exception) { }
     return ret;

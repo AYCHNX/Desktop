@@ -315,7 +315,8 @@ PropagateItemJob *OwncloudPropagator::createJob(const SyncFileItemPtr &item)
             return new PropagateRemoteDelete(this, item);
     case CSYNC_INSTRUCTION_NEW:
     case CSYNC_INSTRUCTION_TYPE_CHANGE:
-    case CSYNC_INSTRUCTION_CONFLICT:
+    case CSYNC_INSTRUCTION_CONFLICT:{
+        qDebug() << "File" << item->_file << "has SyncJournalDb::SyncMode"<< SyncJournalDb::instance()->getSyncMode(item->_file);
         if (item->isDirectory()) {
             // CONFLICT has _direction == None
             if (item->_direction != SyncFileItem::Up) {
@@ -328,22 +329,36 @@ PropagateItemJob *OwncloudPropagator::createJob(const SyncFileItemPtr &item)
                 return job;
             }
         } //fall through
-    case CSYNC_INSTRUCTION_SYNC:
-        if (item->_direction != SyncFileItem::Up) {
-            auto job = new PropagateDownloadFile(this, item);
-            job->setDeleteExistingFolder(deleteExisting);
-            return job;
-        } else {
-            PropagateUploadFileCommon *job = 0;
-            if (item->_size > syncOptions()._initialChunkSize && account()->capabilities().chunkingNg()) {
-                // Item is above _initialChunkSize, thus will be classified as to be chunked
-                job = new PropagateUploadFileNG(this, item);
-            } else {
-                job = new PropagateUploadFileV1(this, item);
+
+        if(item->_instruction == CSYNC_INSTRUCTION_NEW && SyncJournalDb::instance()->getSyncMode(item->_file) == SyncJournalDb::SyncMode::SYNCMODE_ONLINE){
+            if (item->_direction != SyncFileItem::Up) {
+                auto job = new PropagateDownloadFile(this, item);
+                job->setDeleteExistingFolder(deleteExisting);
+                return job;
             }
-            job->setDeleteExisting(deleteExisting);
-            return job;
         }
+    }
+    case CSYNC_INSTRUCTION_SYNC:{
+        qDebug() << "File" << getFilePath(item->_file) << "has SyncJournalDb::SyncMode"<< SyncJournalDb::instance()->getSyncMode(getFilePath(item->_file));
+
+        if(SyncJournalDb::instance()->getSyncMode(getFilePath(item->_file)) == SyncJournalDb::SyncMode::SYNCMODE_ONLINE){
+            if (item->_direction != SyncFileItem::Up) {
+                auto job = new PropagateDownloadFile(this, item);
+                job->setDeleteExistingFolder(deleteExisting);
+                return job;
+            } else {
+                PropagateUploadFileCommon *job = 0;
+                if (item->_size > syncOptions()._initialChunkSize && account()->capabilities().chunkingNg()) {
+                    // Item is above _initialChunkSize, thus will be classified as to be chunked
+                    job = new PropagateUploadFileNG(this, item);
+                } else {
+                    job = new PropagateUploadFileV1(this, item);
+                }
+                job->setDeleteExisting(deleteExisting);
+                return job;
+            }
+        }
+    }
     case CSYNC_INSTRUCTION_RENAME:
         if (item->_direction == SyncFileItem::Up) {
             return new PropagateRemoteMove(this, item);

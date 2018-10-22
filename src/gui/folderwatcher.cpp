@@ -44,7 +44,7 @@ FolderWatcher::FolderWatcher(const QString &root, Folder *folder)
 {
     _d.reset(new FolderWatcherPrivate(this, root));
 
-    _timer.start();
+    //_timer.start();
 }
 
 FolderWatcher::~FolderWatcher()

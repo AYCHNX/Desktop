@@ -156,12 +156,16 @@ public:
     /**
      * Access to the current queue of scheduled folders.
      */
-    QQueue<Folder *> scheduleQueue() const;
+    //QQueue<Folder *> scheduleQueue() const;
 
     /**
      * Access to the currently syncing folder.
      */
     Folder *currentSyncFolder() const;
+
+    //FUSE
+    void setCurrentSyncFolder(Folder *folder);
+    void startSyncNow(const QStringList &filesList);
 
     /** Removes all folders */
     int unloadAndDeleteAllFolders();
@@ -314,7 +318,7 @@ private:
     QTimer _timeScheduler;
 
     /// Scheduled folders that should be synced as soon as possible
-    QQueue<Folder *> _scheduledFolders;
+    //QQueue<Folder *> _scheduledFolders;
 
     /// Picks the next scheduled folder and starts the sync
     QTimer _startScheduledSyncTimer;

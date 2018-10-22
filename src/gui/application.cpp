@@ -206,7 +206,7 @@ Application::Application(int &argc, char **argv)
     _theme->setSystrayUseMonoIcons(cfg.monoIcons());
     connect(_theme, &Theme::systrayUseMonoIconsChanged, this, &Application::slotUseMonoIconsChanged);
 
-    FolderMan::instance()->setupFolders();
+    //FolderMan::instance()->setupFolders();
     _proxy.setupQtProxyFromConfig(); // folders have to be defined first, than we set up the Qt proxy.
 
     _gui = new ownCloudGui(this);
@@ -246,8 +246,8 @@ Application::Application(int &argc, char **argv)
     UpdaterScheduler *updaterScheduler = new UpdaterScheduler(this);
     connect(updaterScheduler, &UpdaterScheduler::updaterAnnouncement,
         _gui.data(), &ownCloudGui::slotShowTrayMessage);
-    connect(updaterScheduler, &UpdaterScheduler::requestRestart,
-        _folderManager.data(), &FolderMan::slotScheduleAppRestart);
+//    connect(updaterScheduler, &UpdaterScheduler::requestRestart,
+//        _folderManager.data(), &FolderMan::slotScheduleAppRestart);
 
     // Cleanup at Quit.
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::slotCleanup);
@@ -257,9 +257,9 @@ Application::~Application()
 {
     // Make sure all folders are gone, otherwise removing the
     // accounts will remove the associated folders from the settings.
-    if (_folderManager) {
-        _folderManager->unloadAndDeleteAllFolders();
-    }
+//    if (_folderManager) {
+//        _folderManager->unloadAndDeleteAllFolders();
+//    }
 
     // Remove the account from the account manager so it can be deleted.
     AccountManager::instance()->shutdown();
@@ -311,12 +311,12 @@ void Application::slotAccountStateRemoved(AccountState *accountState)
     } else
         qDebug() << Q_FUNC_INFO << " Bad up drive";
 #endif
-    if (_folderManager) {
-        disconnect(accountState, &AccountState::stateChanged,
-            _folderManager.data(), &FolderMan::slotAccountStateChanged);
-        disconnect(accountState->account().data(), &Account::serverVersionChanged,
-            _folderManager.data(), &FolderMan::slotServerVersionChanged);
-    }
+//    if (_folderManager) {
+//        disconnect(accountState, &AccountState::stateChanged,
+//            _folderManager.data(), &FolderMan::slotAccountStateChanged);
+//        disconnect(accountState->account().data(), &Account::serverVersionChanged,
+//            _folderManager.data(), &FolderMan::slotServerVersionChanged);
+//    }
 
     // if there is no more account, show the wizard.
     if (AccountManager::instance()->accounts().isEmpty()) {
@@ -332,10 +332,10 @@ void Application::slotAccountStateAdded(AccountState *accountState)
         _gui.data(), &ownCloudGui::slotAccountStateChanged);
     connect(accountState->account().data(), &Account::serverVersionChanged,
         _gui.data(), &ownCloudGui::slotTrayMessageIfServerUnsupported);
-    connect(accountState, &AccountState::stateChanged,
-        _folderManager.data(), &FolderMan::slotAccountStateChanged);
-    connect(accountState->account().data(), &Account::serverVersionChanged,
-        _folderManager.data(), &FolderMan::slotServerVersionChanged);
+//    connect(accountState, &AccountState::stateChanged,
+//        _folderManager.data(), &FolderMan::slotAccountStateChanged);
+//    connect(accountState->account().data(), &Account::serverVersionChanged,
+//        _folderManager.data(), &FolderMan::slotServerVersionChanged);
 
     _gui->slotTrayMessageIfServerUnsupported(accountState->account().data());
 

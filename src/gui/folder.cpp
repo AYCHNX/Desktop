@@ -611,7 +611,9 @@ bool Folder::reloadExcludes()
 
 void Folder::startSync(const QStringList &pathList)
 {
-    Q_UNUSED(pathList)
+    //Q_UNUSED(pathList)
+
+    //_localDiscoveryPaths.insert()
 
     if (isBusy()) {
         qCCritical(lcFolder) << "ERROR csync is still running and new sync requested.";
@@ -645,10 +647,20 @@ void Folder::startSync(const QStringList &pathList)
         }
         return interval;
     }();
-    if (_folderWatcher && _folderWatcher->isReliable() && _timeSinceLastFullLocalDiscovery.isValid()
-        && (fullLocalDiscoveryInterval.count() < 0
-               || _timeSinceLastFullLocalDiscovery.hasExpired(fullLocalDiscoveryInterval.count()))) {
+    if ((_folderWatcher &&
+         _folderWatcher->isReliable() &&
+         _timeSinceLastFullLocalDiscovery.isValid() &&
+         (fullLocalDiscoveryInterval.count() < 0 || _timeSinceLastFullLocalDiscovery.hasExpired(fullLocalDiscoveryInterval.count()))) ||
+            !pathList.isEmpty()) {
         qCInfo(lcFolder) << "Allowing local discovery to read from the database";
+        if(!pathList.isEmpty()){
+            _localDiscoveryPaths.clear();
+            foreach(QString path, pathList){
+                qCInfo(lcFolder) << "local discovery: inserted" << path << "due to FUSE.";
+                _localDiscoveryPaths.insert(path.toUtf8());
+            }
+
+        }
         _engine->setLocalDiscoveryOptions(LocalDiscoveryStyle::DatabaseAndFilesystem, _localDiscoveryPaths);
 
         if (lcFolder().isDebugEnabled()) {

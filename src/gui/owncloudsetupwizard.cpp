@@ -597,7 +597,7 @@ bool OwncloudSetupWizard::ensureStartFromScratch(const QString &localFolder)
 // Method executed when the user end has finished the basic setup.
 void OwncloudSetupWizard::slotAssistantFinished(int result)
 {
-    FolderMan *folderMan = FolderMan::instance();
+    //FolderMan *folderMan = FolderMan::instance();
 
     if (result == QDialog::Rejected) {
         qCInfo(lcWizard) << "Rejected the new config, use the old!";
@@ -606,22 +606,23 @@ void OwncloudSetupWizard::slotAssistantFinished(int result)
         // This may or may not wipe all folder definitions, depending
         // on whether a new account is activated or the existing one
         // is changed.
-        auto account = applyAccountChanges();
 
-        ConfigFile cfgFile;
-        QString localFolder = FolderDefinition::prepareLocalPath(cfgFile.defaultFileStreamMirrorPath());
+        applyAccountChanges();
+
+//        ConfigFile cfgFile;
+//        QString localFolder = FolderDefinition::prepareLocalPath(cfgFile.defaultFileStreamMirrorPath());
 
 //        bool startFromScratch = _ocWizard->field("OCSyncFromScratch").toBool();
 //        if (!startFromScratch || ensureStartFromScratch(localFolder)) {
-            qCInfo(lcWizard) << "Adding folder definition for" << localFolder << _remoteFolder;
-            FolderDefinition folderDefinition;
-            folderDefinition.localPath = localFolder;
-            folderDefinition.targetPath = FolderDefinition::prepareTargetPath(_remoteFolder);
-            folderDefinition.ignoreHiddenFiles = folderMan->ignoreHiddenFiles();
-            if (folderMan->navigationPaneHelper().showInExplorerNavigationPane())
-                folderDefinition.navigationPaneClsid = QUuid::createUuid();
+//            qCInfo(lcWizard) << "Adding folder definition for" << localFolder << _remoteFolder;
+//            FolderDefinition folderDefinition;
+//            folderDefinition.localPath = localFolder;
+//            folderDefinition.targetPath = FolderDefinition::prepareTargetPath(_remoteFolder);
+//            folderDefinition.ignoreHiddenFiles = folderMan->ignoreHiddenFiles();
+//            if (folderMan->navigationPaneHelper().showInExplorerNavigationPane())
+//                folderDefinition.navigationPaneClsid = QUuid::createUuid();
 
-            auto f = folderMan->addFolder(account, folderDefinition);
+//            auto f = folderMan->addFolder(account, folderDefinition);
 //            if (f) {
 //                f->journalDb()->setSelectiveSyncList(SyncJournalDb::SelectiveSyncBlackList,
 //                    _ocWizard->selectiveSyncBlacklist());
@@ -631,7 +632,7 @@ void OwncloudSetupWizard::slotAssistantFinished(int result)
 //                        QStringList() << QLatin1String("/"));
 //                }
 //            }
-            _ocWizard->appendToConfigurationLog(tr("<font color=\"green\"><b>Local sync folder %1 successfully created!</b></font>").arg(localFolder));
+            //_ocWizard->appendToConfigurationLog(tr("<font color=\"green\"><b>Local sync folder %1 successfully created!</b></font>").arg(localFolder));
         }
     //}
 

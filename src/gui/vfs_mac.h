@@ -72,6 +72,11 @@ private:
     qint64 totalQuota_;
     QMap<QString, OCC::DiscoveryDirectoryResult*> _fileListMap;
     QPointer<OCC::DiscoveryFolderFileList> _remotefileListJob;
+
+    fuse_fill_dir_t _filler;
+    void* _buf;
+    QVariantMap _error;
+    QString _syncPath;
     
     QPointer<OCC::AccountState> accountState_;
 #pragma mark Fuse operations.
@@ -213,6 +218,8 @@ public:
      * result A QStringList or nil on error.
      */
     QStringList* contentsOfDirectoryAtPath(QString path, QVariantMap &error);
+
+    void getRemoteFileList(QString path, QVariantMap &error);
     
 #pragma mark Getting and Setting Attributes
     
@@ -528,6 +535,12 @@ public:
     
     qint64 totalQuota() { return totalQuota_; }
     qint64 usedQuota() { return usedQuota_; }
+
+    fuse_fill_dir_t getFiller();
+    void* getBuf();
+
+    void setFiller(fuse_fill_dir_t filler);
+    void setBuf(void* buff);
     
 public slots:
     void folderFileListFinish(OCC::DiscoveryDirectoryResult *dr);

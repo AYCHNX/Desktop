@@ -346,6 +346,18 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
                         }
                     }
 
+                    qDebug() << "File" << cur->path << "has SyncJournalDb::SyncMode"<< OCC::SyncJournalDb::instance()->getSyncMode(cur->path);
+                    if (OCC::SyncJournalDb::instance()->getSyncMode(cur->path) == OCC::SyncJournalDb::SyncMode::SYNCMODE_ONLINE ||
+                               OCC::SyncJournalDb::instance()->getSyncModeDownload(cur->path) == OCC::SyncJournalDb::SyncModeDownload::SYNCMODE_DOWNLOADED_NO) {
+                        // Solve the conflict into an upload, or nothing
+
+                        auto remoteNode = ctx->current == REMOTE_REPLICA ? cur : other;
+                        auto localNode = ctx->current == REMOTE_REPLICA ? other : cur;
+                        remoteNode->instruction = CSYNC_INSTRUCTION_NONE;
+                        localNode->instruction = CSYNC_INSTRUCTION_NEW;
+                        break;
+                    }
+
                     // SO: If there is no checksum, we can have !is_conflict here
                     // even though the files have different content! This is an
                     // intentional tradeoff. Downloading and comparing files would

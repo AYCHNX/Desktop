@@ -1090,7 +1090,7 @@ void FolderStatusModel::slotFolderSyncStateChange(Folder *f)
         pi = SubFolderInfo::Progress();
     } else if (state == SyncResult::NotYetStarted) {
         FolderMan *folderMan = FolderMan::instance();
-        int pos = folderMan->scheduleQueue().indexOf(f);
+        int pos = 0;
         if (folderMan->currentSyncFolder()
             && folderMan->currentSyncFolder() != f) {
             pos += 1;
@@ -1127,9 +1127,8 @@ void FolderStatusModel::slotFolderSyncStateChange(Folder *f)
 void FolderStatusModel::slotFolderScheduleQueueChanged()
 {
     // Update messages on waiting folders.
-    foreach (Folder *f, FolderMan::instance()->map()) {
-        slotFolderSyncStateChange(f);
-    }
+    if(FolderMan::instance()->currentSyncFolder())
+        slotFolderSyncStateChange(FolderMan::instance()->currentSyncFolder());
 }
 
 void FolderStatusModel::resetFolders()
