@@ -18,7 +18,15 @@ void PropagateDownloadEncrypted::start() {
 
 void PropagateDownloadEncrypted::checkFolderEncryptedStatus()
 {
-  auto getEncryptedStatus = new GetFolderEncryptStatusJob(_propagator->account(), _info.path());
+  QString s = _propagator->_remoteFolder;
+  if (s.startsWith("/")) {
+    s.remove(0, 1);
+  }
+  if (s.endsWith('/')) {
+     s.remove(s.length() -1, 1);
+  }
+
+  auto getEncryptedStatus = new GetFolderEncryptStatusJob(_propagator->account(), s);
   connect(getEncryptedStatus, &GetFolderEncryptStatusJob::encryptStatusFolderReceived,
           this, &PropagateDownloadEncrypted::folderStatusReceived);
 

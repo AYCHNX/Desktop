@@ -37,11 +37,18 @@ void PropagateUploadEncrypted::start()
       *
       * If the folder is unencrypted we just follow the old way.
       */
-      qCDebug(lcPropagateUploadEncrypted) << "Starting to send an encrypted file!";
-      QFileInfo info(_item->_file);
-      auto getEncryptedStatus = new GetFolderEncryptStatusJob(_propagator->account(),
-                                                           info.path());
+      qCInfo(lcPropagateUploadEncrypted) << "Starting to send an encrypted file!";
 
+      QString s = _propagator->_remoteFolder;
+      if (s.startsWith("/")) {
+        s.remove(0, 1);
+      }
+      if (s.endsWith('/')) {
+        s.remove(s.length() -1, 1);
+      }
+
+      auto getEncryptedStatus = new GetFolderEncryptStatusJob(_propagator->account(),
+                                                              s);
       connect(getEncryptedStatus, &GetFolderEncryptStatusJob::encryptStatusFolderReceived,
               this, &PropagateUploadEncrypted::slotFolderEncryptedStatusFetched);
       connect(getEncryptedStatus, &GetFolderEncryptStatusJob::encryptStatusError,
