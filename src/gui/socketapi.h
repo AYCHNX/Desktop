@@ -51,7 +51,7 @@ public:
     virtual ~SocketApi();
 
 public slots:
-    void slotUpdateFolderView(Folder *f);
+    void slotUpdateFolderView();
     void slotUnregisterPath(const QString &alias);
     void slotRegisterPath(const QString &alias);
     void broadcastStatusPushMessage(const QString &systemPath, SyncFileStatus fileStatus);
@@ -106,6 +106,8 @@ private:
     Q_INVOKABLE void command_COPY_PRIVATE_LINK(const QString &localFile, SocketListener *listener);
     Q_INVOKABLE void command_EMAIL_PRIVATE_LINK(const QString &localFile, SocketListener *listener);
     Q_INVOKABLE void command_OPEN_PRIVATE_LINK(const QString &localFile, SocketListener *listener);
+	Q_INVOKABLE void command_ONLINE_DOWNLOAD_MODE(const QString &localFile, SocketListener *listener);
+    Q_INVOKABLE void command_OFFLINE_DOWNLOAD_MODE(const QString &localFile, SocketListener *listener);
 
     // Fetch the private link and call targetFun
     void fetchPrivateLinkUrlHelper(const QString &localFile, const std::function<void(const QString &url)> &targetFun);
@@ -126,6 +128,7 @@ private:
     Q_INVOKABLE void command_GET_MENU_ITEMS(const QString &argument, SocketListener *listener);
 
     QString buildRegisterPathMessage(const QString &path);
+	QString buildRegisterFsMessage();
     Q_INVOKABLE void command_SET_DOWNLOAD_MODE(const QString& argument, SocketListener* listener);
     Q_INVOKABLE void command_GET_DOWNLOAD_MODE(const QString& localFile, SocketListener* listener);
 

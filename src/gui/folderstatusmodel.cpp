@@ -425,9 +425,9 @@ FolderStatusModel::SubFolderInfo *FolderStatusModel::infoForFileId(const QByteAr
   return nullptr;
 }
 
-QModelIndex FolderStatusModel::indexForPath(Folder *f, const QString &path) const
+QModelIndex FolderStatusModel::indexForPath(const QString &path) const
 {
-    if (!f) {
+    if (!FolderMan::instance()->currentSyncFolder()) {
         return QModelIndex();
     }
 
@@ -436,7 +436,7 @@ QModelIndex FolderStatusModel::indexForPath(Folder *f, const QString &path) cons
         // first level folder
         for (int i = 0; i < _folders.size(); ++i) {
             auto &info = _folders.at(i);
-            if (info._folder == f) {
+            if (info._folder == FolderMan::instance()->currentSyncFolder()) {
                 if (path.isEmpty()) { // the folder object
                     return index(i, 0);
                 }
@@ -452,7 +452,7 @@ QModelIndex FolderStatusModel::indexForPath(Folder *f, const QString &path) cons
         return QModelIndex();
     }
 
-    auto parent = indexForPath(f, path.left(slashPos));
+    auto parent = indexForPath(path.left(slashPos));
     if (!parent.isValid())
         return parent;
 
@@ -822,12 +822,12 @@ QStringList FolderStatusModel::createBlackList(FolderStatusModel::SubFolderInfo 
     return result;
 }
 
-void FolderStatusModel::slotUpdateFolderState(Folder *folder)
+void FolderStatusModel::slotUpdateFolderState()
 {
-    if (!folder)
+    if (!FolderMan::instance()->currentSyncFolder())
         return;
     for (int i = 0; i < _folders.count(); ++i) {
-        if (_folders.at(i)._folder == folder) {
+        if (_folders.at(i)._folder == FolderMan::instance()->currentSyncFolder()) {
             emit dataChanged(index(i), index(i));
         }
     }
@@ -879,7 +879,7 @@ void FolderStatusModel::slotApplySelectiveSync()
             foreach (const auto &it, changes) {
                 folder->journalDb()->avoidReadFromDbOnNextSync(it);
             }
-            FolderMan::instance()->scheduleFolder(folder);
+            FolderMan::instance()->scheduleFolder();
         }
     }
 
@@ -893,14 +893,13 @@ void FolderStatusModel::slotSetProgress(const ProgressInfo &progress)
         return; // for https://github.com/owncloud/client/issues/2648#issuecomment-71377909
     }
 
-    Folder *f = qobject_cast<Folder *>(sender());
-    if (!f) {
+    if (!FolderMan::instance()->currentSyncFolder()) {
         return;
     }
 
     int folderIndex = -1;
     for (int i = 0; i < _folders.count(); ++i) {
-        if (_folders.at(i)._folder == f) {
+        if (_folders.at(i)._folder == FolderMan::instance()->currentSyncFolder()) {
             folderIndex = i;
             break;
         }
@@ -1067,8 +1066,9 @@ void FolderStatusModel::slotSetProgress(const ProgressInfo &progress)
     emit dataChanged(index(folderIndex), index(folderIndex), roles);
 }
 
-void FolderStatusModel::slotFolderSyncStateChange(Folder *f)
+void FolderStatusModel::slotFolderSyncStateChange()
 {
+    Folder *f = FolderMan::instance()->currentSyncFolder();
     if (!f) {
         return;
     }
@@ -1116,7 +1116,7 @@ void FolderStatusModel::slotFolderSyncStateChange(Folder *f)
     }
 
     // update the icon etc. now
-    slotUpdateFolderState(f);
+    slotUpdateFolderState();
 
     if (f->syncResult().folderStructureWasChanged()
         && (state == SyncResult::Success || state == SyncResult::Problem)) {
@@ -1129,9 +1129,7 @@ void FolderStatusModel::slotFolderSyncStateChange(Folder *f)
 void FolderStatusModel::slotFolderScheduleQueueChanged()
 {
     // Update messages on waiting folders.
-    foreach (Folder *f, FolderMan::instance()->map()) {
-        slotFolderSyncStateChange(f);
-    }
+    slotFolderSyncStateChange();
 }
 
 void FolderStatusModel::resetFolders()
@@ -1192,7 +1190,7 @@ void FolderStatusModel::slotSyncAllPendingBigFolders()
         foreach (const auto &it, undecidedList) {
             folder->journalDb()->avoidReadFromDbOnNextSync(it);
         }
-        FolderMan::instance()->scheduleFolder(folder);
+        FolderMan::instance()->scheduleFolder();
     }
 
     resetFolders();
@@ -1212,12 +1210,11 @@ void FolderStatusModel::slotSyncNoPendingBigFolders()
 
 void FolderStatusModel::slotNewBigFolder()
 {
-    auto f = qobject_cast<Folder *>(sender());
-    ASSERT(f);
+    ASSERT(FolderMan::instance()->currentSyncFolder());
 
     int folderIndex = -1;
     for (int i = 0; i < _folders.count(); ++i) {
-        if (_folders.at(i)._folder == f) {
+        if (_folders.at(i)._folder == FolderMan::instance()->currentSyncFolder()) {
             folderIndex = i;
             break;
         }

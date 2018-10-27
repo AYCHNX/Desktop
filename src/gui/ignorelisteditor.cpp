@@ -79,16 +79,16 @@ bool IgnoreListEditor::ignoreHiddenFiles()
     return !ui->syncHiddenFilesCheckBox->isChecked();
 }
 
-void IgnoreListEditor::slotRestoreDefaults(QAbstractButton *button)
+void IgnoreListEditor::slotRestoreDefaults(QAbstractButton* button)
 {
-    if(ui->buttonBox->buttonRole(button) != QDialogButtonBox::ResetRole)
-        return;
+	if (ui->buttonBox->buttonRole(button) != QDialogButtonBox::ResetRole)
+		return;
 
-    ui->ignoreTableWidget->slotRemoveAllItems();
+	ui->ignoreTableWidget->slotRemoveAllItems();
 
-    ConfigFile cfgFile;
-    setupTableReadOnlyItems();
-    ui->ignoreTableWidget->readIgnoreFile(cfgFile.excludeFile(ConfigFile::SystemScope), false);
+	ConfigFile cfgFile;
+	setupTableReadOnlyItems();
+	ui->ignoreTableWidget->readIgnoreFile(cfgFile.excludeFile(ConfigFile::SystemScope), false);
 }
 
 } // namespace OCC
