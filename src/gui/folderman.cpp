@@ -702,14 +702,11 @@ void FolderMan::slotStartScheduledFolderSync()
 
     // Require a pause based on the duration of the last sync run.
     if (_currentSyncFolder) {
-        msSinceLastSync = _currentSyncFolder->msecSinceLastSync().count();
-
-        //  1s   -> 1.5s pause
-        // 10s   -> 5s pause
-        //  1min -> 12s pause
-        //  1h   -> 90s pause
-        qint64 pause = qSqrt(_currentSyncFolder->msecLastSyncDuration().count()) / 20.0 * 1000.0;
-        msDelay = qMax(msDelay, pause);
+        // Safe to call several times, and necessary to try again if
+        // the folder path didn't exist previously.
+        _currentSyncFolder->registerFolderWatcher();
+        registerFolderWithSocketApi();
+        _currentSyncFolder->startSync();
     }
 
     // Delays beyond one minute seem too big, particularly since there
