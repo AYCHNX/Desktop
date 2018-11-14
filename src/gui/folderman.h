@@ -238,6 +238,9 @@ public slots:
     /** Wipe folder */
     void slotWipeFolderForAccount(AccountState *accountState);
 
+    // slot to take the next folder from queue and start syncing.
+    void slotStartScheduledFolderSync();
+
 private slots:
     void slotFolderSyncPaused(bool paused);
     void slotFolderCanSyncChanged();
@@ -247,8 +250,6 @@ private slots:
     void slotRunOneEtagJob();
     void slotEtagJobDestroyed(QObject *);
 
-    // slot to take the next folder from queue and start syncing.
-    void slotStartScheduledFolderSync();
     void slotEtagPollTimerTimeout();
 
     void slotRemoveFoldersForAccount(AccountState *accountState);
