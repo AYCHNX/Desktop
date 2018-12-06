@@ -65,15 +65,15 @@ FolderMan::FolderMan(QObject *parent)
     QObject::connect(&_etagPollTimer, &QTimer::timeout, this, &FolderMan::slotEtagPollTimerTimeout);
     _etagPollTimer.start();
 
-    _startScheduledSyncTimer.setSingleShot(true);
-    connect(&_startScheduledSyncTimer, &QTimer::timeout,
-        this, &FolderMan::slotStartScheduledFolderSync);
+//    _startScheduledSyncTimer.setSingleShot(true);
+//    connect(&_startScheduledSyncTimer, &QTimer::timeout,
+//        this, &FolderMan::slotStartScheduledFolderSync);
 
-    _timeScheduler.setInterval(5000);
-    _timeScheduler.setSingleShot(false);
-    connect(&_timeScheduler, &QTimer::timeout,
-        this, &FolderMan::slotScheduleFolderByTime);
-    _timeScheduler.start();
+//    _timeScheduler.setInterval(5000);
+//    _timeScheduler.setSingleShot(false);
+//    connect(&_timeScheduler, &QTimer::timeout,
+//        this, &FolderMan::slotScheduleFolderByTime);
+//    _timeScheduler.start();
 
     connect(AccountManager::instance(), &AccountManager::accountRemoved,
         this, &FolderMan::slotRemoveFoldersForAccount);
@@ -131,7 +131,10 @@ int FolderMan::unloadAndDeleteAllFolders()
     ASSERT(_folderMap.isEmpty());
 
     _currentSyncFolder = nullptr;
-    _scheduledFolders.clear();
+
+    // TODO: no queue anymore, only _currentSyncFolder
+    //_scheduledFolders.clear();
+
     emit folderListChanged(_folderMap);
     emit scheduleQueueChanged();
 
@@ -493,7 +496,8 @@ void FolderMan::scheduleFolder()
 
     qCInfo(lcFolderMan) << "Schedule folder " << alias << " to sync!";
 
-    if (!_scheduledFolders.contains(_currentSyncFolder)) {
+    // TODO: no queue anymore, only _currentSyncFolder
+    //if (!_scheduledFolders.contains(_currentSyncFolder)) {
         if (!_currentSyncFolder->canSync()) {
             qCInfo(lcFolderMan) << "Folder is not ready to sync, not scheduled!";
             _socketApi->slotUpdateFolderView();
@@ -501,11 +505,11 @@ void FolderMan::scheduleFolder()
         }
         _currentSyncFolder->prepareToSync();
         emit folderSyncStateChange();
-        _scheduledFolders.enqueue(_currentSyncFolder);
+        //_scheduledFolders.enqueue(_currentSyncFolder);
         emit scheduleQueueChanged();
-    } else {
-        qCInfo(lcFolderMan) << "Sync for folder " << alias << " already scheduled, do not enqueue!";
-    }
+//    } else {
+//        qCInfo(lcFolderMan) << "Sync for folder " << alias << " already scheduled, do not enqueue!";
+//    }
 
     startScheduledSyncSoon();
 }
@@ -520,11 +524,15 @@ void FolderMan::scheduleFolderNext()
         return;
     }
 
-    _scheduledFolders.clear();
+    // TODO: no queue anymore, only _currentSyncFolder
+    //_scheduledFolders.clear();
 
     _currentSyncFolder->prepareToSync();
     emit folderSyncStateChange();
-    _scheduledFolders.prepend(_currentSyncFolder);
+
+    // TODO: no queue anymore, only _currentSyncFolder
+    //_scheduledFolders.prepend(_currentSyncFolder);
+
     emit scheduleQueueChanged();
 
     startScheduledSyncSoon();
@@ -590,13 +598,15 @@ void FolderMan::slotAccountStateChanged()
             _currentSyncFolder->slotTerminateSync();
         }
 
-        QMutableListIterator<Folder *> it(_scheduledFolders);
-        while (it.hasNext()) {
-            Folder *f = it.next();
-            if (f->accountState() == accountState) {
-                it.remove();
-            }
-        }
+        // TODO: no queue anymore, only _currentSyncFolder
+//        QMutableListIterator<Folder *> it(_scheduledFolders);
+//        while (it.hasNext()) {
+//            Folder *f = it.next();
+//            if (f->accountState() == accountState) {
+//                it.remove();
+//            }
+//        }
+
         emit scheduleQueueChanged();
     }
 }
@@ -605,7 +615,10 @@ void FolderMan::slotAccountStateChanged()
 // this is not the same as Pause and Resume of folders.
 void FolderMan::setSyncEnabled(bool enabled)
 {
-    if (!_syncEnabled && enabled && !_scheduledFolders.isEmpty()) {
+
+    // TODO: no queue anymore, only _currentSyncFolder
+    //if (!_syncEnabled && enabled && !_scheduledFolders.isEmpty()) {
+    if (!_syncEnabled && enabled && !_currentSyncFolder) {
         // We have things in our queue that were waiting for the connection to come back on.
         startScheduledSyncSoon();
     }
@@ -625,9 +638,10 @@ void FolderMan::startScheduledSyncSoon()
         return;
     }
 
-    if (_scheduledFolders.empty()) {
-        return;
-    }
+    // TODO: no queue anymore, only _currentSyncFolder
+//    if (_scheduledFolders.empty()) {
+//        return;
+//    }
 
     qint64 msDelay = 100; // 100ms minimum delay
     qint64 msSinceLastSync = 0;
@@ -654,11 +668,12 @@ void FolderMan::startScheduledSyncSoon()
 
     qCInfo(lcFolderMan) << "Starting the next scheduled sync in" << (msDelay / 1000) << "seconds";
 
+    slotStartScheduledFolderSync();
 	// called by FUSE from a different thread
-    if (thread() != QThread::currentThread())
-        slotStartScheduledFolderSync();
-    else
-		_startScheduledSyncTimer.start(msDelay);
+//    if (thread() != QThread::currentThread())
+//        slotStartScheduledFolderSync();
+//    else
+//		_startScheduledSyncTimer.start(msDelay);
 
 }
 
@@ -679,13 +694,14 @@ void FolderMan::slotStartScheduledFolderSync()
         return;
     }
 
-    qCDebug(lcFolderMan) << "folderQueue size: " << _scheduledFolders.count();
-    if (_scheduledFolders.isEmpty()) {
-        return;
-    }
+    // TODO: no queue anymore, only _currentSyncFolder
+//    qCDebug(lcFolderMan) << "folderQueue size: " << _scheduledFolders.count();
+//    if (_scheduledFolders.isEmpty()) {
+//        return;
+//    }
 
     // Find the first folder in the queue that can be synced.
-    _scheduledFolders.clear();
+    //_scheduledFolders.clear();
 
     emit scheduleQueueChanged();
 
@@ -712,9 +728,12 @@ void FolderMan::slotEtagPollTimerTimeout()
 //        if (_currentSyncFolder == f) {
 //            continue;
 //        }
-        if (_scheduledFolders.contains(f)) {
-            continue;
-        }
+
+        // TODO: no queue anymore, only _currentSyncFolder
+//        if (_scheduledFolders.contains(f)) {
+//            continue;
+//        }
+
         if (f->syncPaused()) {
             continue;
         }
@@ -949,7 +968,9 @@ void FolderMan::removeFolder()
         terminateSyncProcess();
     }
 
-    _scheduledFolders.clear();
+    // TODO: no queue anymore, only _currentSyncFolder
+    //_scheduledFolders.clear();
+
     emit scheduleQueueChanged();
 
     _currentSyncFolder->wipe();

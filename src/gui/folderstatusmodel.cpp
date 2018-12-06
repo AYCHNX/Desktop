@@ -1089,18 +1089,19 @@ void FolderStatusModel::slotFolderSyncStateChange()
         // Reset progress info.
         pi = SubFolderInfo::Progress();
     } else if (state == SyncResult::NotYetStarted) {
-        FolderMan *folderMan = FolderMan::instance();
-        int pos = folderMan->scheduleQueue().indexOf(f);
-        if (folderMan->currentSyncFolder()
-            && folderMan->currentSyncFolder() != f) {
-            pos += 1;
-        }
+        // TODO: no queue anymore, only _currentSyncFolder
+//        FolderMan *folderMan = FolderMan::instance();
+//        int pos = folderMan->scheduleQueue().indexOf(f);
+//        if (folderMan->currentSyncFolder()
+//            && folderMan->currentSyncFolder() != f) {
+//            pos += 1;
+//        }
         QString message;
-        if (pos <= 0) {
-            message = tr("Waiting...");
-        } else {
-            message = tr("Waiting for %n other folder(s)...", "", pos);
-        }
+//        if (pos <= 0) {
+        message = tr("Waiting...");
+//        } else {
+//            message = tr("Waiting for %n other folder(s)...", "", pos);
+//        }
         pi = SubFolderInfo::Progress();
         pi._overallSyncString = message;
     } else if (state == SyncResult::SyncPrepare) {
