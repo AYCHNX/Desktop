@@ -51,12 +51,13 @@
 #include <QMessageBox>
 
 #include <QClipboard>
+#include <QFileInfo>
 
 
+#include "configfile.h"
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
 #include <QStandardPaths>
 #endif
-
 
 #if defined(Q_OS_WIN)
 #include "vfs_windows.h"
@@ -97,162 +98,158 @@ namespace OCC {
 Q_LOGGING_CATEGORY(lcSocketApi, "gui.socketapi", QtInfoMsg)
 Q_LOGGING_CATEGORY(lcPublicLink, "gui.socketapi.publiclink", QtInfoMsg)
 
-	class BloomFilter
+class BloomFilter
 {
-	// Initialize with m=1024 bits and k=2 (high and low 16 bits of a qHash).
-	// For a client navigating in less than 100 directories, this gives us a probability less than (1-e^(-2*100/1024))^2 = 0.03147872136 false positives.
-	const static int NumBits = 1024;
+    // Initialize with m=1024 bits and k=2 (high and low 16 bits of a qHash).
+    // For a client navigating in less than 100 directories, this gives us a probability less than (1-e^(-2*100/1024))^2 = 0.03147872136 false positives.
+    const static int NumBits = 1024;
 
 public:
-	BloomFilter()
-		: hashBits(NumBits)
-	{
-	}
+    BloomFilter()
+        : hashBits(NumBits)
+    {
+    }
 
-	void storeHash(uint hash)
-	{
-		hashBits.setBit((hash & 0xFFFF) % NumBits);
-		hashBits.setBit((hash >> 16) % NumBits);
-	}
-	bool isHashMaybeStored(uint hash) const
-	{
-		return hashBits.testBit((hash & 0xFFFF) % NumBits)
-			&& hashBits.testBit((hash >> 16) % NumBits);
-	}
+    void storeHash(uint hash)
+    {
+        hashBits.setBit((hash & 0xFFFF) % NumBits);
+        hashBits.setBit((hash >> 16) % NumBits);
+    }
+    bool isHashMaybeStored(uint hash) const
+    {
+        return hashBits.testBit((hash & 0xFFFF) % NumBits)
+            && hashBits.testBit((hash >> 16) % NumBits);
+    }
 
 private:
-	QBitArray hashBits;
+    QBitArray hashBits;
 };
 
 class SocketListener
 {
 public:
-	QIODevice* socket;
+    QIODevice *socket;
 
-	SocketListener(QIODevice* socket = nullptr)
-		: socket(socket)
-	{
-	}
+    SocketListener(QIODevice *socket = 0)
+        : socket(socket)
+    {
+    }
 
-	void sendMessage(const QString& message, bool doWait = false) const
-	{
-		qCInfo(lcSocketApi) << "Sending SocketAPI message -->" << message << "to" << socket;
-		QString localMessage = message;
-		if (!localMessage.endsWith(QLatin1Char('\n'))) {
-			localMessage.append(QLatin1Char('\n'));
-		}
+    void sendMessage(const QString &message, bool doWait = false) const
+    {
+        qCInfo(lcSocketApi) << "Sending SocketAPI message -->" << message << "to" << socket;
+        QString localMessage = message;
+        if (!localMessage.endsWith(QLatin1Char('\n'))) {
+            localMessage.append(QLatin1Char('\n'));
+        }
 
-		QByteArray bytesToSend = localMessage.toUtf8();
-		qint64 sent = socket->write(bytesToSend);
-		if (doWait) {
-			socket->waitForBytesWritten(1000);
-		}
-		if (sent != bytesToSend.length()) {
-			qCWarning(lcSocketApi) << "Could not send all data on socket for " << localMessage;
-		}
-	}
+        QByteArray bytesToSend = localMessage.toUtf8();
+        qint64 sent = socket->write(bytesToSend);
+        if (doWait) {
+            socket->waitForBytesWritten(1000);
+        }
+        if (sent != bytesToSend.length()) {
+            qCWarning(lcSocketApi) << "Could not send all data on socket for " << localMessage;
+        }
+    }
 
-	void sendMessageIfDirectoryMonitored(const QString& message, uint systemDirectoryHash) const
-	{
-		if (_monitoredDirectoriesBloomFilter.isHashMaybeStored(systemDirectoryHash))
-			sendMessage(message, false);
-	}
+    void sendMessageIfDirectoryMonitored(const QString &message, uint systemDirectoryHash) const
+    {
+        if (_monitoredDirectoriesBloomFilter.isHashMaybeStored(systemDirectoryHash))
+            sendMessage(message, false);
+    }
 
-	void registerMonitoredDirectory(uint systemDirectoryHash)
-	{
-		_monitoredDirectoriesBloomFilter.storeHash(systemDirectoryHash);
-	}
+    void registerMonitoredDirectory(uint systemDirectoryHash)
+    {
+        _monitoredDirectoriesBloomFilter.storeHash(systemDirectoryHash);
+    }
 
 private:
-	BloomFilter _monitoredDirectoriesBloomFilter;
+    BloomFilter _monitoredDirectoriesBloomFilter;
 };
 
 struct ListenerHasSocketPred
 {
-	QIODevice* socket;
-	ListenerHasSocketPred(QIODevice* socket)
-		: socket(socket)
-	{
-	}
-	bool operator()(const SocketListener& listener) const { return listener.socket == socket; }
+    QIODevice *socket;
+    ListenerHasSocketPred(QIODevice *socket)
+        : socket(socket)
+    {
+    }
+    bool operator()(const SocketListener &listener) const { return listener.socket == socket; }
 };
 
-SocketApi::SocketApi(QObject* parent)
-	: QObject(parent)
+SocketApi::SocketApi(QObject *parent)
+    : QObject(parent)
 {
-	QString socketPath;
+    QString socketPath;
 
-	if (Utility::isWindows()) {
-		socketPath = QLatin1String("\\\\.\\pipe\\")
-			+ QLatin1String("ownCloud-")
-			+ QString::fromLocal8Bit(qgetenv("USERNAME"));
-		// TODO: once the windows extension supports multiple
-		// client connections, switch back to the theme name
-		// See issue #2388
-		// + Theme::instance()->appName();
-	}
-	else if (Utility::isMac()) {
-		// This must match the code signing Team setting of the extension
-		// Example for developer builds (with ad-hoc signing identity): "" "com.owncloud.desktopclient" ".socketApi"
-		// Example for official signed packages: "9B5WD74GWJ." "com.owncloud.desktopclient" ".socketApi"
-		socketPath = SOCKETAPI_TEAM_IDENTIFIER_PREFIX APPLICATION_REV_DOMAIN ".socketApi";
+    if (Utility::isWindows()) {
+        socketPath = QLatin1String("\\\\.\\pipe\\")
+            + QLatin1String("ownCloud-")
+            + QString::fromLocal8Bit(qgetenv("USERNAME"));
+        // TODO: once the windows extension supports multiple
+        // client connections, switch back to the theme name
+        // See issue #2388
+        // + Theme::instance()->appName();
+    } else if (Utility::isMac()) {
+        // This must match the code signing Team setting of the extension
+        // Example for developer builds (with ad-hoc signing identity): "" "com.owncloud.desktopclient" ".socketApi"
+        // Example for official signed packages: "9B5WD74GWJ." "com.owncloud.desktopclient" ".socketApi"
+        socketPath = SOCKETAPI_TEAM_IDENTIFIER_PREFIX APPLICATION_REV_DOMAIN ".socketApi";
 #ifdef Q_OS_MAC
-		// Tell Finder to use the Extension (checking it from System Preferences -> Extensions)
-		system("pluginkit -e use -i  " APPLICATION_REV_DOMAIN ".FinderSyncExt &");
+        // Tell Finder to use the Extension (checking it from System Preferences -> Extensions)
+        system("pluginkit -e use -i  " APPLICATION_REV_DOMAIN ".FinderSyncExt &");
 #endif
-	}
-	else if (Utility::isLinux() || Utility::isBSD()) {
-		QString runtimeDir;
+    } else if (Utility::isLinux() || Utility::isBSD()) {
+        QString runtimeDir;
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
-		runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+        runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
 #else
-		runtimeDir = QFile::decodeName(qgetenv("XDG_RUNTIME_DIR"));
-		if (runtimeDir.isEmpty()) {
-			runtimeDir = QDir::tempPath() + QLatin1String("/runtime-")
-				+ QString::fromLocal8Bit(qgetenv("USER"));
-			QDir().mkdir(runtimeDir);
-		}
+        runtimeDir = QFile::decodeName(qgetenv("XDG_RUNTIME_DIR"));
+        if (runtimeDir.isEmpty()) {
+            runtimeDir = QDir::tempPath() + QLatin1String("/runtime-")
+                + QString::fromLocal8Bit(qgetenv("USER"));
+            QDir().mkdir(runtimeDir);
+        }
 #endif
-		socketPath = runtimeDir + "/" + Theme::instance()->appName() + "/socket";
-	}
-	else {
-		qCWarning(lcSocketApi) << "An unexpected system detected, this probably won't work.";
-	}
+        socketPath = runtimeDir + "/" + Theme::instance()->appName() + "/socket";
+    } else {
+        qCWarning(lcSocketApi) << "An unexpected system detected, this probably won't work.";
+    }
 
-	SocketApiServer::removeServer(socketPath);
-	QFileInfo info(socketPath);
-	if (!info.dir().exists()) {
-		bool result = info.dir().mkpath(".");
-		qCDebug(lcSocketApi) << "creating" << info.dir().path() << result;
-		if (result) {
-			QFile::setPermissions(socketPath,
-				QFile::Permissions(QFile::ReadOwner + QFile::WriteOwner + QFile::ExeOwner));
-		}
-	}
-	if (!_localServer.listen(socketPath)) {
-		qCWarning(lcSocketApi) << "can't start server" << socketPath;
-	}
-	else {
-		qCInfo(lcSocketApi) << "server started, listening at " << socketPath;
-	}
+    SocketApiServer::removeServer(socketPath);
+    QFileInfo info(socketPath);
+    if (!info.dir().exists()) {
+        bool result = info.dir().mkpath(".");
+        qCDebug(lcSocketApi) << "creating" << info.dir().path() << result;
+        if (result) {
+            QFile::setPermissions(socketPath,
+                QFile::Permissions(QFile::ReadOwner + QFile::WriteOwner + QFile::ExeOwner));
+        }
+    }
+    if (!_localServer.listen(socketPath)) {
+        qCWarning(lcSocketApi) << "can't start server" << socketPath;
+    } else {
+        qCInfo(lcSocketApi) << "server started, listening at " << socketPath;
+    }
 
-	connect(&_localServer, &SocketApiServer::newConnection, this, &SocketApi::slotNewConnection);
+    connect(&_localServer, &SocketApiServer::newConnection, this, &SocketApi::slotNewConnection);
 
-	// folder watcher
-	connect(FolderMan::instance(), &FolderMan::folderSyncStateChange, this, &SocketApi::slotUpdateFolderView);
+    // folder watcher
+    connect(FolderMan::instance(), &FolderMan::folderSyncStateChange, this, &SocketApi::slotUpdateFolderView);
 }
 
 SocketApi::~SocketApi()
 {
-	qCDebug(lcSocketApi) << "dtor";
-	_localServer.close();
-	// All remaining sockets will be destroyed with _localServer, their parent
-	ASSERT(_listeners.isEmpty() || _listeners.first().socket->parent() == &_localServer);
-	_listeners.clear();
+    qCDebug(lcSocketApi) << "dtor";
+    _localServer.close();
+    // All remaining sockets will be destroyed with _localServer, their parent
+    ASSERT(_listeners.isEmpty() || _listeners.first().socket->parent() == &_localServer);
+    _listeners.clear();
 
 #ifdef Q_OS_MAC
-	// Unload the extension (uncheck from System Preferences -> Extensions)
-	system("pluginkit -e ignore -i  " APPLICATION_REV_DOMAIN ".FinderSyncExt &");
+    // Unload the extension (uncheck from System Preferences -> Extensions)
+    system("pluginkit -e ignore -i  " APPLICATION_REV_DOMAIN ".FinderSyncExt &");
 #endif
 }
 
@@ -276,8 +273,10 @@ void SocketApi::slotNewConnection()
 
     foreach (Folder *f, FolderMan::instance()->map()) {
         if (f->canSync()) {
-            QString message = buildRegisterPathMessage(removeTrailingSlash(f->path()));
-            listener.sendMessage(message);
+            QString message_mirror = buildRegisterPathMessage(removeTrailingSlash(f->path()));
+            QString message_fs = buildRegisterFsMessage();
+            listener.sendMessage(message_mirror);
+            listener.sendMessage(message_fs);
         }
     }
 }
@@ -327,9 +326,11 @@ void SocketApi::slotRegisterPath(const QString &alias)
 
     Folder *f = FolderMan::instance()->folder(alias);
     if (f) {
-        QString message = buildRegisterPathMessage(removeTrailingSlash(f->path()));
+        QString message_mirror = buildRegisterPathMessage(removeTrailingSlash(f->path()));
+        QString message_fs = buildRegisterFsMessage();
         foreach (auto &listener, _listeners) {
-            listener.sendMessage(message);
+            listener.sendMessage(message_mirror);
+            listener.sendMessage(message_fs);
         }
     }
 
@@ -342,8 +343,16 @@ void SocketApi::slotUnregisterPath(const QString &alias)
         return;
 
     Folder *f = FolderMan::instance()->folder(alias);
-    if (f)
-        broadcastMessage(buildMessage(QLatin1String("UNREGISTER_PATH"), removeTrailingSlash(f->path()), QString()), true);
+	if (f)
+	{
+#if defined(Q_OS_WIN)
+		ConfigFile Cfg;
+		QString FileStreamLetterDrive = Cfg.defaultFileStreamLetterDrive().toUpper().append(":/");
+		broadcastMessage(buildMessage(QLatin1String("UNREGISTER_PATH"), FileStreamLetterDrive, QString()), true);
+#elif defined(Q_OS_MAC)
+		broadcastMessage(buildMessage(QLatin1String("UNREGISTER_PATH"), removeTrailingSlash(f->path()), QString()), true);
+#endif
+	}
 
     _registeredAliases.remove(alias);
 }
@@ -364,9 +373,16 @@ void SocketApi::slotUpdateFolderView()
             || f->syncResult().status() == SyncResult::Error
             || f->syncResult().status() == SyncResult::SetupError) {
             QString rootPath = removeTrailingSlash(f->path());
-            broadcastStatusPushMessage(rootPath, f->syncEngine().syncFileStatusTracker().fileStatus(""));
 
-            broadcastMessage(buildMessage(QLatin1String("UPDATE_VIEW"), rootPath));
+#if defined(Q_OS_WIN)
+			ConfigFile Cfg;
+			QString FileStreamLetterDrive = Cfg.defaultFileStreamLetterDrive().toUpper().append(":");
+			broadcastStatusPushMessage(FileStreamLetterDrive, f->syncEngine().syncFileStatusTracker().fileStatus(""));
+			broadcastMessage(buildMessage(QLatin1String("UPDATE_VIEW"), FileStreamLetterDrive.append("/")));
+#elif defined(Q_OS_MAC)
+			broadcastStatusPushMessage(rootPath, f->syncEngine().syncFileStatusTracker().fileStatus(""));
+			broadcastMessage(buildMessage(QLatin1String("UPDATE_VIEW"), rootPath));
+#endif
         } else {
             qCDebug(lcSocketApi) << "Not sending UPDATE_VIEW for" << f->alias() << "because status() is" << f->syncResult().status();
         }
@@ -380,8 +396,20 @@ void SocketApi::broadcastMessage(const QString &msg, bool doWait)
     }
 }
 
-void SocketApi::processShareRequest(const QString &localFile, SocketListener *listener, ShareDialogStartPage startPage)
+void SocketApi::processShareRequest(const QString &localFileC, SocketListener *listener, ShareDialogStartPage startPage)
 {
+    QString localFile = localFileC;
+
+#if defined(Q_OS_WIN)
+    OCC::ConfigFile Cfg;
+    char letter[2];
+    letter[0] = localFile.toStdString().c_str()[0];
+    letter[1] = 0;
+
+    if (!QString(letter).compare(Cfg.defaultFileStreamLetterDrive().toUpper()))
+        localFile.replace(0, 3, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
+#endif
+
     auto theme = Theme::instance();
 
     auto fileData = FileData::get(localFile);
@@ -425,9 +453,23 @@ void SocketApi::broadcastStatusPushMessage(const QString &systemPath, SyncFileSt
 {
     QString msg = buildMessage(QLatin1String("STATUS"), systemPath, fileStatus.toSocketAPIString());
     Q_ASSERT(!systemPath.endsWith('/'));
+#if defined(Q_OS_WIN)
+	ConfigFile Cfg;
+	QString FileStreamLetterDrive = Cfg.defaultFileStreamLetterDrive().toUpper().append("://");
+    uint directoryHash = qHash(systemPath.left(FileStreamLetterDrive.lastIndexOf('/')));
+#elif defined(Q_OS_MAC)
     uint directoryHash = qHash(systemPath.left(systemPath.lastIndexOf('/')));
+#endif
     foreach (auto &listener, _listeners) {
-        listener.sendMessageIfDirectoryMonitored(msg, directoryHash);
+#if defined(Q_OS_WIN)
+        QString relative_prefix = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/";
+        QString systemPath2 = systemPath;
+        systemPath2.replace(0, relative_prefix.length(), Cfg.defaultFileStreamLetterDrive().toUpper().append(":"));
+        QString msg2 = buildMessage(QLatin1String("STATUS"), systemPath2, fileStatus.toSocketAPIString());
+		listener.sendMessageIfDirectoryMonitored(msg2, directoryHash);
+#elif defined(Q_OS_MAC)
+		listener.sendMessageIfDirectoryMonitored(msg, directoryHash);
+#endif
     }
 }
 
@@ -437,40 +479,78 @@ void SocketApi::command_RETRIEVE_FOLDER_STATUS(const QString &argument, SocketLi
     command_RETRIEVE_FILE_STATUS(argument, listener);
 }
 
-void SocketApi::command_RETRIEVE_FILE_STATUS(const QString &argument, SocketListener *listener)
+void SocketApi::command_RETRIEVE_FILE_STATUS(const QString &argumentC, SocketListener *listener)
 {
-    QString statusString;
+	QString argument = argumentC;
+	QString relative_prefix = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/";
+	argument.replace(0, 3, relative_prefix);
+
+	QString statusString;
 
     auto fileData = FileData::get(argument);
     if (!fileData.folder) {
         // this can happen in offline mode e.g.: nothing to worry about
         statusString = QLatin1String("NOP");
     } else {
-		QString systemPath = QDir::cleanPath(argument);
+        QString systemPath = QDir::cleanPath(argument);
         if (systemPath.endsWith(QLatin1Char('/'))) {
             systemPath.truncate(systemPath.length() - 1);
             qCWarning(lcSocketApi) << "Removed trailing slash for directory: " << systemPath << "Status pushes won't have one.";
         }
         // The user probably visited this directory in the file shell.
         // Let the listener know that it should now send status pushes for sibblings of this file.
-		QString directory = fileData.localPath.left(fileData.localPath.lastIndexOf('/'));
-        listener->registerMonitoredDirectory(qHash(directory));
-
-		SyncFileStatus fileStatus = fileData.syncFileStatus();
+        QString directory = fileData.localPath.left(fileData.localPath.lastIndexOf('/'));
+#if defined(Q_OS_WIN)
+		ConfigFile Cfg;
+		QString FileStreamLetterDrive = Cfg.defaultFileStreamLetterDrive().toUpper().append("://");
+		listener->registerMonitoredDirectory(qHash(FileStreamLetterDrive));
+#elif defined(Q_OS_MAC)
+		listener->registerMonitoredDirectory(qHash(directory));
+#endif
+        SyncFileStatus fileStatus = fileData.syncFileStatus();
         statusString = fileStatus.toSocketAPIString();
     }
 
+	//QString message2 = message;
+	//QString relative_prefix = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/";
+	argument.replace(0, relative_prefix.length(), QString("X:\\"));
+
     const QString message = QLatin1String("STATUS:") % statusString % QLatin1Char(':') % QDir::toNativeSeparators(argument);
+
     listener->sendMessage(message);
 }
 
-void SocketApi::command_SHARE(const QString &localFile, SocketListener *listener)
+void SocketApi::command_SHARE(const QString &localFileC, SocketListener *listener)
 {
+    QString localFile = localFileC;
+    
+#if defined(Q_OS_WIN)
+    OCC::ConfigFile Cfg;
+    char letter[2];
+    letter[0] = localFile.toStdString().c_str()[0];
+    letter[1] = 0;
+
+    if (!QString(letter).compare(Cfg.defaultFileStreamLetterDrive().toUpper()))
+        localFile.replace(0, 3, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
+#endif
+
     processShareRequest(localFile, listener, ShareDialogStartPage::UsersAndGroups);
 }
 
-void SocketApi::command_MANAGE_PUBLIC_LINKS(const QString &localFile, SocketListener *listener)
+void SocketApi::command_MANAGE_PUBLIC_LINKS(const QString &localFileC, SocketListener *listener)
 {
+    QString localFile = localFileC;
+
+#if defined(Q_OS_WIN)
+    OCC::ConfigFile Cfg;
+    char letter[2];
+    letter[0] = localFile.toStdString().c_str()[0];
+    letter[1] = 0;
+
+    if (!QString(letter).compare(Cfg.defaultFileStreamLetterDrive().toUpper()))
+        localFile.replace(0, 3, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
+#endif
+
     processShareRequest(localFile, listener, ShareDialogStartPage::PublicLinks);
 }
 
@@ -479,8 +559,20 @@ void SocketApi::command_VERSION(const QString &, SocketListener *listener)
     listener->sendMessage(QLatin1String("VERSION:" MIRALL_VERSION_STRING ":" MIRALL_SOCKET_API_VERSION));
 }
 
-void SocketApi::command_SHARE_STATUS(const QString &localFile, SocketListener *listener)
+void SocketApi::command_SHARE_STATUS(const QString &localFileC, SocketListener *listener)
 {
+    QString localFile = localFileC;
+
+#if defined(Q_OS_WIN)
+    OCC::ConfigFile Cfg;
+    char letter[2];
+    letter[0] = localFile.toStdString().c_str()[0];
+    letter[1] = 0;
+
+    if (!QString(letter).compare(Cfg.defaultFileStreamLetterDrive().toUpper()))
+        localFile.replace(0, 3, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
+#endif
+
     Folder *shareFolder = FolderMan::instance()->folderForPath(localFile);
 
     if (!shareFolder) {
@@ -532,105 +624,129 @@ void SocketApi::command_SHARE_STATUS(const QString &localFile, SocketListener *l
 void SocketApi::command_SHARE_MENU_TITLE(const QString &, SocketListener *listener)
 {
     listener->sendMessage(QLatin1String("SHARE_MENU_TITLE:") + tr("Share with %1", "parameter is ownCloud").arg(Theme::instance()->appNameGUI()));
-    listener->sendMessage(QLatin1String("STREAM_SUBMENU_TITLE:") + tr("Claro drive FS"));
-    listener->sendMessage(QLatin1String("STREAM_OFFLINE_ITEM_TITLE:") + tr("0ff line"));
-    listener->sendMessage(QLatin1String("STREAM_ONLINE_ITEM_TITLE:") + tr("On line"));
+    listener->sendMessage(QLatin1String("STREAM_SUBMENU_TITLE:") + tr("Virtual Drive"));
+    listener->sendMessage(QLatin1String("STREAM_OFFLINE_ITEM_TITLE:") + tr("Available offline"));
+    listener->sendMessage(QLatin1String("STREAM_ONLINE_ITEM_TITLE:") + tr("Online only"));
 }
 
 // don't pull the share manager into socketapi unittests
 #ifndef OWNCLOUD_TEST
 
-	class GetOrCreatePublicLinkShare : public QObject
-	{
-		Q_OBJECT
-	public:
-		GetOrCreatePublicLinkShare(const AccountPtr& account, const QString& localFile,
-			std::function<void(const QString & link)> targetFun, QObject* parent)
-			: QObject(parent)
-			, _shareManager(account)
-			, _localFile(localFile)
-			, _targetFun(targetFun)
-		{
-			connect(&_shareManager, &ShareManager::sharesFetched,
-				this, &GetOrCreatePublicLinkShare::sharesFetched);
-			connect(&_shareManager, &ShareManager::linkShareCreated,
-				this, &GetOrCreatePublicLinkShare::linkShareCreated);
-			connect(&_shareManager, &ShareManager::serverError,
-				this, &GetOrCreatePublicLinkShare::serverError);
-		}
+class GetOrCreatePublicLinkShare : public QObject
+{
+    Q_OBJECT
+public:
+    GetOrCreatePublicLinkShare(const AccountPtr &account, const QString &localFile,
+        std::function<void(const QString &link)> targetFun, QObject *parent)
+        : QObject(parent)
+        , _shareManager(account)
+        , _localFile(localFile)
+        , _targetFun(targetFun)
+    {
+        connect(&_shareManager, &ShareManager::sharesFetched,
+            this, &GetOrCreatePublicLinkShare::sharesFetched);
+        connect(&_shareManager, &ShareManager::linkShareCreated,
+            this, &GetOrCreatePublicLinkShare::linkShareCreated);
+        connect(&_shareManager, &ShareManager::serverError,
+            this, &GetOrCreatePublicLinkShare::serverError);
+    }
 
-		void run()
-		{
-			qCDebug(lcPublicLink) << "Fetching shares";
-			_shareManager.fetchShares(_localFile);
-		}
+    void run()
+    {
+        qCDebug(lcPublicLink) << "Fetching shares";
+        _shareManager.fetchShares(_localFile);
+    }
 
-	private slots:
-		void sharesFetched(const QList<QSharedPointer<Share>>& shares)
-		{
-			auto shareName = SocketApi::tr("Context menu share");
-			// If there already is a context menu share, reuse it
-			for (const auto& share : shares) {
-				const auto linkShare = qSharedPointerDynamicCast<LinkShare>(share);
-				if (!linkShare)
-					continue;
+private slots:
+    void sharesFetched(const QList<QSharedPointer<Share>> &shares)
+    {
+        auto shareName = SocketApi::tr("Context menu share");
+        // If there already is a context menu share, reuse it
+        for (const auto &share : shares) {
+            const auto linkShare = qSharedPointerDynamicCast<LinkShare>(share);
+            if (!linkShare)
+                continue;
 
-				if (linkShare->getName() == shareName) {
-					qCDebug(lcPublicLink) << "Found existing share, reusing";
-					return success(linkShare->getLink().toString());
-				}
-			}
+            if (linkShare->getName() == shareName) {
+                qCDebug(lcPublicLink) << "Found existing share, reusing";
+                return success(linkShare->getLink().toString());
+            }
+        }
 
-			// otherwise create a new one
-			qCDebug(lcPublicLink) << "Creating new share";
-			_shareManager.createLinkShare(_localFile, shareName, QString());
-		}
+        // otherwise create a new one
+        qCDebug(lcPublicLink) << "Creating new share";
+        _shareManager.createLinkShare(_localFile, shareName, QString());
+    }
 
-		void linkShareCreated(const QSharedPointer<LinkShare>& share)
-		{
-			qCDebug(lcPublicLink) << "New share created";
-			success(share->getLink().toString());
-		}
+    void linkShareCreated(const QSharedPointer<LinkShare> &share)
+    {
+        qCDebug(lcPublicLink) << "New share created";
+        success(share->getLink().toString());
+    }
 
-		void serverError(int code, const QString& message)
-		{
-			qCWarning(lcPublicLink) << "Share fetch/create error" << code << message;
-			QMessageBox::warning(
-				nullptr,
-				tr("Sharing error"),
-				tr("Could not retrieve or create the public link share. Error:\n\n%1").arg(message),
-				QMessageBox::Ok,
-				QMessageBox::NoButton);
-			deleteLater();
-		}
+    void serverError(int code, const QString &messageC)
+    {
+        QString message = messageC;
 
-	private:
-		void success(const QString& link)
-		{
-			_targetFun(link);
-			deleteLater();
-		}
+#if defined(Q_OS_WIN)
+        OCC::ConfigFile Cfg;
+        char letter[2];
+        letter[0] = message.toStdString().c_str()[0];
+        letter[1] = 0;
 
-		ShareManager _shareManager;
-		QString _localFile;
-		std::function<void(const QString & url)> _targetFun;
-	};
+        if (!QString(letter).compare(Cfg.defaultFileStreamLetterDrive().toUpper()))
+            message.replace(0, 3, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
+#endif
+
+        qCWarning(lcPublicLink) << "Share fetch/create error" << code << message;
+        QMessageBox::warning(
+            0,
+            tr("Sharing error"),
+            tr("Could not retrieve or create the public link share. Error:\n\n%1").arg(message),
+            QMessageBox::Ok,
+            QMessageBox::NoButton);
+        deleteLater();
+    }
+
+private:
+    void success(const QString &linkC)
+    {
+        QString link = linkC;
+
+#if defined(Q_OS_WIN)
+        OCC::ConfigFile Cfg;
+        char letter[2];
+        letter[0] = link.toStdString().c_str()[0];
+        letter[1] = 0;
+
+        if (!QString(letter).compare(Cfg.defaultFileStreamLetterDrive().toUpper()))
+            link.replace(0, 3, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
+#endif
+
+        _targetFun(link);
+        deleteLater();
+    }
+
+    ShareManager _shareManager;
+    QString _localFile;
+    std::function<void(const QString &url)> _targetFun;
+};
 
 #else
 
-	class GetOrCreatePublicLinkShare : public QObject
-	{
-		Q_OBJECT
-	public:
-		GetOrCreatePublicLinkShare(const AccountPtr&, const QString&,
-			std::function<void(const QString & link)>, QObject*)
-		{
-		}
+class GetOrCreatePublicLinkShare : public QObject
+{
+    Q_OBJECT
+public:
+    GetOrCreatePublicLinkShare(const AccountPtr &, const QString &,
+        std::function<void(const QString &link)>, QObject *)
+    {
+    }
 
-		void run()
-		{
-		}
-	};
+    void run()
+    {
+    }
+};
 
 #endif
 
@@ -855,13 +971,13 @@ void SocketApi::sendSharingContextMenuOptions(const FileData &fileData, SocketLi
             && !capabilities.sharePublicLinkEnforcePassword();
 
         if (canCreateDefaultPublicLink) {
-            listener->sendMessage(QLatin1String("MENU_ITEM:COPY_PUBLIC_LINK") + flagString + tr("Copy public link to clipboard"));
+            listener->sendMessage(QLatin1String("MENU_ITEM:COPY_PUBLIC_LINK") + flagString + tr("Copy public link"));
         } else if (publicLinksEnabled) {
-            listener->sendMessage(QLatin1String("MENU_ITEM:MANAGE_PUBLIC_LINKS") + flagString + tr("Copy public link to clipboard"));
+            listener->sendMessage(QLatin1String("MENU_ITEM:MANAGE_PUBLIC_LINKS") + flagString + tr("Copy public link"));
         }
     }
 
-    listener->sendMessage(QLatin1String("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy private link to clipboard"));
+    listener->sendMessage(QLatin1String("MENU_ITEM:COPY_PRIVATE_LINK") + flagString + tr("Copy internal link"));
 
     // Disabled: only providing email option for private links would look odd,
     // and the copy option is more general.
@@ -1138,8 +1254,7 @@ void SocketApi::command_GET_DOWNLOAD_MODE(const QString &localFileC, SocketListe
         }
     }
     listener->sendMessage(QLatin1String("GET_DOWNLOAD_MODE:") + downloadMode);
-} 
-
+}
 } // namespace OCC
 
 #include "socketapi.moc"
