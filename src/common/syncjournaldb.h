@@ -330,7 +330,7 @@ public:
 	*/
 	qint64 secondsSinceLastAccess(QString const & path);
 
-    void emitSyncStatusChanged(QString path, bool status);
+    void emitSyncStatusChanged();
 
 private:
     int getFileRecordCount();
@@ -425,7 +425,7 @@ private:
     QByteArray _journalMode;
 
 signals:
-    void syncStatusChanged(QString path, bool status);
+    void syncStatusChanged();
 };
 
 bool OCSYNC_EXPORT
