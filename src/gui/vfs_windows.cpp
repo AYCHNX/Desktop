@@ -87,6 +87,11 @@ BOOL g_DebugMode;
 BOOL g_HasSeSecurityPrivilege;
 BOOL g_ImpersonateCallerUser;
 
+static QString transformPath(QString oldPath) {
+	QString newPath = oldPath.replace(0, 1, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
+	return newPath;
+}
+
 static void DbgPrint(LPCWSTR format, ...) {
 	if (g_DebugMode) {
 		const WCHAR *outputString;
@@ -335,12 +340,12 @@ MirrorCreateFile(LPCWSTR FileName, PDOKAN_IO_SECURITY_CONTEXT SecurityContext,
 
 	//< Capture CreateFile Virtual File System Operation
 
-		QString QSFileName;
-		#ifdef UNICODE
-			QSFileName = QString::fromWCharArray(FileName);
-		#else
-			QSFileName = QString::fromLocal8Bit(FileName);
-		#endif
+	QString QSFileName;
+	#ifdef UNICODE
+		QSFileName = QString::fromWCharArray(FileName);
+	#else
+		QSFileName = QString::fromLocal8Bit(FileName);
+	#endif
 
 	WCHAR filePath[DOKAN_MAX_PATH];
 	HANDLE handle;
@@ -1619,44 +1624,20 @@ MirrorDeleteDirectory(LPCWSTR FileName, PDOKAN_FILE_INFO DokanFileInfo) {
 }
 
 static NTSTATUS DOKAN_CALLBACK
-MirrorMoveFile(LPCWSTR FileName, // existing file name
-	LPCWSTR NewFileName, BOOL ReplaceIfExisting,
-	PDOKAN_FILE_INFO DokanFileInfo) {
-
+MirrorMoveFile(LPCWSTR OldFileName, /* existing file name */ LPCWSTR NewFileName, BOOL ReplaceIfExisting, PDOKAN_FILE_INFO DokanFileInfo) {
 	//< Capture MoveFile Virtual File System Operation
 
-	QString QSFileName;
-	QString QSNewFileName;
+	QString oldFileName;
+	QString newFileName;
 
 #ifdef UNICODE
-	QSFileName = QString::fromWCharArray(FileName);
-	QSNewFileName = QString::fromWCharArray(NewFileName);
+	oldFileName = QString::fromWCharArray(OldFileName);
+	newFileName = QString::fromWCharArray(NewFileName);
 #else
-	QSFileName = QString::fromLocal8Bit(FileName);
-	QSNewFileName = QString::fromLocal8Bit(NewFileName);
+	oldFileName = QString::fromLocal8Bit(OldFileName);
+	newFileName = QString::fromLocal8Bit(NewFileName);
 #endif
 	
-//qDebug() << Q_FUNC_INFO << " 1 FileName: " << QSFileName;
-
-	//QMutexLocker lockerMirrorMoveFile(&_mutexMirrorMoveFile);
-	Vfs_windows *m_Vfs_windows = NULL;
-	m_Vfs_windows = Vfs_windows::instance();
-	if (m_Vfs_windows)
-	{
-		//if (QSFileName.compare("\\") != 0)
-		//	m_Vfs_windows->getOperationMoveFile(QSFileName, QString("MirrorMoveFile"), QString("InProcess..."));
-	}
-	else
-	{
-		//lockerMirrorMoveFile.unlock();
-		return 0;
-	}
-	//lockerMirrorMoveFile.unlock();
-
-//qDebug() << Q_FUNC_INFO << " 2 FileName: " << QSFileName;
-
-
-
 	WCHAR filePath[DOKAN_MAX_PATH];
 	WCHAR newFilePath[DOKAN_MAX_PATH];
 	HANDLE handle;
@@ -1666,7 +1647,7 @@ MirrorMoveFile(LPCWSTR FileName, // existing file name
 
 	PFILE_RENAME_INFO renameInfo = NULL;
 
-	GetFilePath(filePath, DOKAN_MAX_PATH, FileName);
+	GetFilePath(filePath, DOKAN_MAX_PATH, OldFileName);
 	GetFilePath(newFilePath, DOKAN_MAX_PATH, NewFileName);
 
 	DbgPrint(L"MoveFile %s -> %s\n\n", filePath, newFilePath);
@@ -1708,21 +1689,19 @@ MirrorMoveFile(LPCWSTR FileName, // existing file name
 	free(renameInfo);
 
 	if (result) {
-		if (QSFileName.compare("\\") != 0)
+		if (oldFileName.compare("\\") != 0)
 		{
 			if (DokanFileInfo->IsDirectory)
 			{
+				//< Move directory from oldPath to newPath with real path
 				QVariantMap error;
-				QSFileName.replace(0, 1, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
-				QSNewFileName.replace(0, 1, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
-				Vfs_windows::instance()->moveDirectoryAtPath(QSFileName, QSNewFileName, error);
+				Vfs_windows::instance()->moveDirectoryAtPath(transformPath(oldFileName), transformPath(newFileName), error);
 			}
 			else
 			{
+				//< Move file from oldPath to newPath with real path
 				QVariantMap error;
-				QSFileName.replace(0, 1, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
-				QSNewFileName.replace(0, 1, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles/");
-				Vfs_windows::instance()->moveFileAtPath(QSFileName, QSNewFileName, error);
+				Vfs_windows::instance()->moveFileAtPath(transformPath(oldFileName), transformPath(newFileName), error);
 			}
 		}
 		return STATUS_SUCCESS;
@@ -2647,10 +2626,10 @@ void Vfs_windows::createFileAtPath(QString path, QVariantMap &error)
     emit createItem(path);
 }
 
-void Vfs_windows::moveFileAtPath(QString path, QString npath, QVariantMap &error)
+void Vfs_windows::moveFileAtPath(QString oldPath, QString newPath, QVariantMap &error)
 {
     //TODO: remove old path
-	emit move(npath);
+	emit move(newPath);
 }
 
 void Vfs_windows::createDirectoryAtPath(QString path, QVariantMap &error)
