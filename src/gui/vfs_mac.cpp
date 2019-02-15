@@ -537,9 +537,6 @@ bool VfsMac::moveItemAtPath(QString source, QString destination, QVariantMap &er
 {
     // We use rename directly here since NSFileManager can sometimes fail to
     // rename and return non-posix error codes.
-	
-	//Todo: remove old path
-    emit move(destination);
 
     QString p_src = rootPath_  + source;
     QString p_dst = rootPath_ + destination;
@@ -548,6 +545,10 @@ bool VfsMac::moveItemAtPath(QString source, QString destination, QVariantMap &er
         error = errorWithPosixCode(errno);
         return false;
     }
+
+	//Todo: remove old path
+	emit move(destination);
+
     return true;
 }
 
@@ -1749,19 +1750,3 @@ void VfsMac::mount(QVariantMap args)
     } else if (internal_)
         internal_->setStatus(GMUserFileSystem_NOT_MOUNTED);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
