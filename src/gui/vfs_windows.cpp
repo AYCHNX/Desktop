@@ -2662,9 +2662,9 @@ qDebug() << Q_FUNC_INFO << " rootPath: " << rootPath_;
 						QDir().mkdir(completePath);
 					}
 				}
+			emit addToFileTree(_fileListMap.value(path)->list.at(i)->type, completePath);
 		}
-		//if (_fileListMap.value(path)->list.at(i)->type == ItemTypeFile)
-		emit addToFileTree(_fileListMap.value(path)->list.at(i)->type, completePath);
+		//if (_fileListMap.value(path)->list.at(i)->type == ItemTypeFile)		
 		//qDebug() << Q_FUNC_INFO << "results: " << r->name << r->type;
 	}
 	

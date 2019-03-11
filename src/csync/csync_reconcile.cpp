@@ -152,7 +152,7 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
             }
 			if (ctx->statedb->getSyncMode(cur->path) == OCC::SyncJournalDb::SYNCMODE_NONE)
 			{
-				/* Do not remove files in a directory that was not open yet */	
+				/* Do not remove files in a directory that was not open yet */
 				break;
 			}
 			cur->instruction = CSYNC_INSTRUCTION_REMOVE;
@@ -192,16 +192,16 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
                     // other is found as well?
                     qCDebug(lcReconcile, "Other has already been renamed to %s",
                         other->rename_path.constData());
-                } else if (cur->type == ItemTypeDirectory
-                    // The local replica is reconciled first, so the remote tree would
-                    // have either NONE or UPDATE_METADATA if the remote file is safe to
-                    // move.
-                    // In the remote replica, REMOVE is also valid (local has already
-                    // been reconciled). NONE can still happen if the whole parent dir
-                    // was set to REMOVE by the local reconcile.
-                    || other->instruction == CSYNC_INSTRUCTION_NONE
-                    || other->instruction == CSYNC_INSTRUCTION_UPDATE_METADATA
-                    || other->instruction == CSYNC_INSTRUCTION_REMOVE) {
+				} else if (cur->type == ItemTypeDirectory
+					// The local replica is reconciled first, so the remote tree would
+					// have either NONE or UPDATE_METADATA if the remote file is safe to
+					// move.
+					// In the remote replica, REMOVE is also valid (local has already
+					// been reconciled). NONE can still happen if the whole parent dir
+					// was set to REMOVE by the local reconcile.
+					|| other->instruction == CSYNC_INSTRUCTION_NONE
+					|| other->instruction == CSYNC_INSTRUCTION_UPDATE_METADATA
+					|| other->instruction == CSYNC_INSTRUCTION_REMOVE) {
                     qCDebug(lcReconcile, "Switching %s to RENAME to %s",
                         other->path.constData(), cur->path.constData());
                     other->instruction = CSYNC_INSTRUCTION_RENAME;
@@ -375,7 +375,7 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
 						else
 							other->instruction = (!cur->is_fuse_created_file) ? CSYNC_INSTRUCTION_UPDATE_METADATA : CSYNC_INSTRUCTION_SYNC;
 					}
-						
+
                 }
 
                 break;

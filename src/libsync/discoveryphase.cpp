@@ -713,7 +713,8 @@ void DiscoveryJob::start()
     _csync_ctx->callbacks.vio_userdata = this;
 
     _lastUpdateProgressCallbackCall.invalidate();
-    int ret = csync_update(_csync_ctx);
+
+	int ret = csync_update(_csync_ctx);
 
     _csync_ctx->callbacks.checkSelectiveSyncNewFolderHook = 0;
     _csync_ctx->callbacks.checkSelectiveSyncBlackListHook = 0;

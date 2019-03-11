@@ -111,10 +111,12 @@ static int _csync_detect_update(CSYNC *ctx, std::unique_ptr<csync_file_stat_t> f
   Q_ASSERT(fs);
   OCC::SyncJournalFileRecord base;
   CSYNC_EXCLUDE_TYPE excluded = CSYNC_NOT_EXCLUDED;
+
   if (fs->type == ItemTypeSkip) {
       excluded =CSYNC_FILE_EXCLUDE_STAT_FAILED;
   } else {
       /* Check if file is excluded */
+	  qDebug() << fs->path;
       if (ctx->exclude_traversal_fn)
           excluded = ctx->exclude_traversal_fn(fs->path, fs->type);
   }
@@ -226,11 +228,15 @@ static int _csync_detect_update(CSYNC *ctx, std::unique_ptr<csync_file_stat_t> f
 
           goto out;
       }
+
+      // checks if file changes in comparison to the database
       if (ctx->current == LOCAL_REPLICA &&
               (!_csync_mtime_equal(fs->modtime, base._modtime)
                // zero size in statedb can happen during migration
-               || (base._fileSize != 0 && fs->size != base._fileSize))) {
+               || (base._fileSize != 0 && fs->size != base._fileSize)) &&
+               fs->instruction == CSYNC_INSTRUCTION_EVAL) {
 
+		  // not sure...
           // Checksum comparison at this stage is only enabled for .eml files,
           // check #4754 #4755
           bool isEmlFile = csync_fnmatch("*.eml", fs->path, FNM_CASEFOLD) == 0;
@@ -256,7 +262,7 @@ static int _csync_detect_update(CSYNC *ctx, std::unique_ptr<csync_file_stat_t> f
               fs->child_modified = true;
           }
 
-          fs->instruction = CSYNC_INSTRUCTION_EVAL;
+          //fs->instruction = CSYNC_INSTRUCTION_EVAL;
           goto out;
       }
       bool metadata_differ = (ctx->current == REMOTE_REPLICA && (fs->file_id != base._fileId
@@ -281,7 +287,7 @@ static int _csync_detect_update(CSYNC *ctx, std::unique_ptr<csync_file_stat_t> f
       if (metadata_differ) {
           /* file id or permissions has changed. Which means we need to update them in the DB. */
           qCDebug(lcUpdate, "Need to update metadata for: %s", fs->path.constData());
-          fs->instruction = CSYNC_INSTRUCTION_UPDATE_METADATA;
+          if(!fs->is_fuse_created_file) fs->instruction = CSYNC_INSTRUCTION_UPDATE_METADATA;
       } else {
           fs->instruction = CSYNC_INSTRUCTION_NONE;
       }
@@ -296,11 +302,9 @@ static int _csync_detect_update(CSYNC *ctx, std::unique_ptr<csync_file_stat_t> f
               return -1;
           }
 
-          // Default to NEW unless we're sure it's a rename or fuse is telling otherwise
-   //       if (fs->instruction != CSYNC_INSTRUCTION_SYNC)
-			//fs->instruction = CSYNC_INSTRUCTION_NEW;
 
-          bool isRename =
+          // checks for rename to be sure
+          bool isRename = fs->instruction == CSYNC_INSTRUCTION_EVAL_RENAME ||
               base.isValid() && base._type == fs->type
                   && ((base._modtime == fs->modtime && base._fileSize == fs->size) || fs->type == ItemTypeDirectory)
 #ifdef NO_RENAME_EXTENSION
@@ -324,7 +328,7 @@ static int _csync_detect_update(CSYNC *ctx, std::unique_ptr<csync_file_stat_t> f
           if (isRename) {
               qCDebug(lcUpdate, "pot rename detected based on inode # %" PRId64 "", (uint64_t) fs->inode);
               /* inode found so the file has been renamed */
-              fs->instruction = CSYNC_INSTRUCTION_EVAL_RENAME;
+              //fs->instruction = CSYNC_INSTRUCTION_EVAL_RENAME;
               if (fs->type == ItemTypeDirectory) {
                   csync_rename_record(ctx, base._path, fs->path);
               }
@@ -333,6 +337,7 @@ static int _csync_detect_update(CSYNC *ctx, std::unique_ptr<csync_file_stat_t> f
 
       } else {
           /* Remote Replica Rename check */
+		  // this is different, we don't know yet what happened on remote
           fs->instruction = CSYNC_INSTRUCTION_NEW;
 
           bool done = false;
@@ -442,7 +447,7 @@ out:
 
   ctx->current_fs = fs.get();
 
-  qCInfo(lcUpdate) << "file:" << fs->path << "instruction: " << csync_instruction_str(fs->instruction);
+  qCInfo(lcUpdate) << "## file:" << fs->path << "instruction: " << csync_instruction_str(fs->instruction);
 
   QByteArray path = fs->path;
   switch (ctx->current) {
@@ -549,7 +554,6 @@ static bool fill_tree_from_db(CSYNC *ctx, const char *uri)
         /*  check if it is offline */
         //if(ctx->statedb->getSyncMode(rec._path) != OCC::SyncJournalDb::SyncMode::SYNCMODE_OFFLINE)
         //    st->instruction = CSYNC_INSTRUCTION_IGNORE;
-        qDebug() << "UPDATE #######################" << rec._path << st->instruction;
 
         /* store into result list. */
         files[rec._path] = std::move(st);

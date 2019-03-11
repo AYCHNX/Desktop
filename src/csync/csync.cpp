@@ -111,16 +111,6 @@ int csync_update(CSYNC *ctx) {
   /* update detection for remote replica */
   timer.restart();
 
-  std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-  qDebug() << "LOCAL ######################################################";
-  while (it != ctx->local.files.end()) {
-    qDebug() << "localFile->file_id " << it->second->file_id;
-    qDebug() << "localFile->path " << it->second->path;
-    qDebug() << "localFile->instruction " << it->second->instruction;
-    it++;
-  }
-  qDebug() << "######################################################";
-
   qCInfo(lcCSync, "## Starting remote discovery ##");
   ctx->current = REMOTE_REPLICA;
   rc = csync_ftw(ctx, "", csync_walker, MAX_DEPTH);
@@ -130,17 +120,6 @@ int csync_update(CSYNC *ctx) {
       }
       return rc;
   }
-
-  std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it2 = ctx->remote.files.begin();
-  qDebug() << "REMOTE ######################################################";
-  while (it2 != ctx->remote.files.end()) {
-      qDebug() << "remote->file_id " << it2->second->file_id;
-      qDebug() << "remote->path " << it2->second->path;
-      qDebug() << "remote->instruction " << it2->second->instruction;
-      it2++;
-  }
-  qDebug() << "######################################################";
-
 
   qCInfo(lcCSync) << "Update detection for remote replica took" << timer.elapsed() / 1000.
                   << "seconds walking" << ctx->remote.files.size() << "files";
@@ -356,26 +335,66 @@ int  csync_abort_requested(CSYNC *ctx)
 
 bool cysnc_update_file(CSYNC *ctx, const char *absolutePath, const QByteArray &relativePath, const QByteArray &fileName, csync_instructions_e instruction)
 {
-    if (ctx->local.files.findFile(relativePath)) {
-      ctx->local.files.findFile(relativePath)->instruction = instruction;
+  //  if (ctx->local.files.findFile(relativePath)) {
+		//QByteArray filenameBuffer;
+  //      QByteArray fullpath;
+		//std::unique_ptr<csync_file_stat_t> newfile = std::make_unique<csync_file_stat_t>();
+		//newfile.reset(ctx->local.files.findFile(relativePath));
+		//newfile->instruction = instruction;
 
-	  //std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-      qDebug() << "## FOUND FILE IN TREE ######################################################" << relativePath << ctx->local.files.findFile(relativePath)->instruction;
-    //  while (it != ctx->local.files.end()) {
-    //      qDebug() << "localFile->file_id " << it->second->file_id;
-    //      qDebug() << "localFile->path " << it->second->path;
-    //      qDebug() << "localFile->original_path " << it->second->original_path;
-    //      qDebug() << "localFile->instruction " << it->second->instruction;
-		  //qDebug() << "localFile->is_fuse_created_file " << it->second->is_fuse_created_file;
-    //      it++;
-    //  }
-    //  qDebug() << "######################################################";
+		///* Conversion error */
+		//if (newfile->path.isEmpty() && !newfile->original_path.isEmpty()) {
+		//	ctx->status_code = CSYNC_STATUS_INVALID_CHARACTERS;
+		//	ctx->error_string = c_strdup(newfile->original_path);
+		//	newfile->original_path.clear();
+		//	return false;
+		//}
 
-      return true;
+		//// At this point dirent->path only contains the file name.
+		//filenameBuffer = newfile->path;
+  //      if (filenameBuffer.isEmpty()) {
+		//	ctx->status_code = CSYNC_STATUS_READDIR_ERROR;
+		//	return false;
+		//}
 
-    } else {
-		//qDebug() << "ADDING FILE TO TREE!! ######################################################" << absolutePath << relativePath << fileName;
-        // do the whole process for a single file
+		//if (absolutePath[0] == '\0') {
+		//	fullpath = filenameBuffer;
+		//} else {
+  //          fullpath = QByteArray() % absolutePath % '/' % filenameBuffer;
+		//}
+
+		///* if the filename starts with a . we consider it a hidden file
+		//	* For windows, the hidden state is also discovered within the vio
+		//	* local stat function.
+		//	*/
+  //          if (filenameBuffer[0] == '.') {
+		//	if (filenameBuffer != ".sys.admin#recall#") { /* recall file shall not be ignored (#4420) */
+		//		newfile->is_hidden = true;
+		//	}
+		//}
+
+		//// Now process to have a relative path to the sync root for the local replica, or to the data root on the remote.
+		//newfile->path = fullpath;
+		//if (ctx->current == LOCAL_REPLICA) {
+		//	ASSERT(newfile->path.startsWith(ctx->local.uri)); // path is relative to uri
+		//	// "len + 1" to include the slash in-between.
+		//	newfile->path = newfile->path.mid(strlen(ctx->local.uri) + 1);
+		//}
+
+		///* Call walker for the  file */
+		//int rc = csync_walker(ctx, std::move(newfile));
+		///* this function may update ctx->current and ctx->read_from_db */
+
+		//if (rc < 0) {
+		//	if (CSYNC_STATUS_IS_OK(ctx->status_code)) {
+		//		ctx->status_code = csync_errno_to_status(errno, CSYNC_STATUS_UPDATE_ERROR);
+		//	}
+		//	return false;
+		//}
+
+		//return true;
+
+  //  } else {
         std::unique_ptr<csync_file_stat_t> newfile;
         csync_file_stat_t *previous_fs = NULL;
         csync_vio_handle_t *dh = NULL;
@@ -499,22 +518,11 @@ bool cysnc_update_file(CSYNC *ctx, const char *absolutePath, const QByteArray &r
 
 				ctx->current = REMOTE_REPLICA;
 
-				//std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-                qDebug() << "## AFTER ADDING TO LOCAL ######################################################" << fullpath;
-    //            while (it != ctx->local.files.end()) {
-    //                qDebug() << "localFile->file_id " << it->second->file_id;
-    //                qDebug() << "localFile->path " << it->second->path;
-    //                qDebug() << "localFile->original_path " << it->second->original_path;
-    //                qDebug() << "localFile->instruction " << it->second->instruction;
-    //                it++;
-    //            }
-    //            qDebug() << "######################################################";
-
 				return true;
 			}
         }
 
-    }
+    //}
 
     return false;
 }

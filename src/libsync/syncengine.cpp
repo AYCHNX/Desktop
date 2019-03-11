@@ -1080,11 +1080,21 @@ void SyncEngine::slotDiscoveryJobFinished(int discoveryResult)
     _csync_ctx->reinitialize();
     //_localDiscoveryPaths.clear();
 
+	//std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
+	//qDebug() << "LOCAL ######################################################";
+	//while (it != ctx->local.files.end()) {
+	//	qDebug() << "localFile->file_id " << it->second->file_id;
+	//	qDebug() << "localFile->path " << it->second->path;
+	//	qDebug() << "localFile->instruction " << it->second->instruction;
+	//	it++;
+	//}
+	//qDebug() << "######################################################";
+
     // To announce the beginning of the sync
 	qDebug() << "## ABOUT TO PROPAGATE #######";
     for (SyncFileItemVector::iterator it = syncItems.begin(); it != syncItems.end(); ++it) {
         qDebug() << "file: " << (*it)->_file;
-		qDebug() << "instruction: " << (*it)->_instruction;
+		qDebug() << "instruction: " << csync_instruction_str((*it)->_instruction);
 		qDebug() << "direction: " << (*it)->_direction;
     }
 	qDebug() << "##############";
@@ -1654,14 +1664,8 @@ void SyncEngine::updateLocalFileTree(const QString &path, csync_instructions_e i
             QString relativePath(path);
             QString fileName(QFileInfo(path).fileName());
 
-			qDebug() << "## UPDATE LOCAL FILE TREE ######################################################";
-			qDebug() << "relativePath: " << relativePath;
-            qDebug() << "absolutePath: " << absolutePath;
-            qDebug() << "fileName: " << fileName;
-            qDebug() << "######################################################";
-
             if (cysnc_update_file(_csync_ctx.data(), absolutePath.toLatin1(), relativePath.toLatin1(), fileName.toLatin1(), instruction)) {
-                qDebug() << "## ADDED FILE TO TREE ######################################################" << relativePath << _csync_ctx->local.files.findFile(relativePath.toLatin1())->instruction;
+                qDebug() << "## ADDED FILE TO TREE ##" << relativePath << csync_instruction_str(_csync_ctx->local.files.findFile(relativePath.toLatin1())->instruction);
             }
         }
     }
