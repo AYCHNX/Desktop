@@ -140,7 +140,7 @@ public:
     explicit VfsMac(QString rootPath, bool isThreadSafe, OCC::AccountState *accountState, QObject *parent=0);
     
     // The file system for the current thread. Valid only during a FUSE callback.
-    static VfsMac* currentFS() {
+    static VfsMac* instance() {
         struct fuse_context* context = fuse_get_context();
         Q_ASSERT(context);
         return (VfsMac *)context->private_data;
@@ -225,7 +225,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result A QStringList or nil on error.
      */
-    QStringList* contentsOfDirectoryAtPath(QString path, QVariantMap &error);
+    void *contentsOfDirectoryAtPath(QString absolutePath, QVariantMap &error);
     
 #pragma mark Getting and Setting Attributes
     
@@ -302,7 +302,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result YES if the file was opened successfully.
      */
-    bool openFileAtPath(QString path, int mode, QVariant &userData, QVariantMap &error);
+    void openFileAtPath(QString absolutePath, QVariantMap &error);
     
     /*!
      * abstract Called when an opened file is closed.
@@ -312,7 +312,7 @@ public:
      * param path The path to the file.
      * param userData The userData corresponding to this open file or nil.
      */
-    void releaseFileAtPath(QString path, QVariant userData);
+    void releaseFileAtPath(QString absolutePath, QVariantMap &error);
     
     /*!
      * abstract Reads data from the open file at the specified path.
@@ -329,7 +329,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result The number of bytes read or -1 on error.
      */
-    int readFileAtPath(QString path, QVariant userData, char *buffer, size_t size, off_t offset, QVariantMap &error);
+    void readFileAtPath(QString absolutePath, QVariantMap &error);
     
     /*!
      * abstract Writes data to the open file at the specified path.
@@ -346,7 +346,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result The number of bytes written or -1 on error.
      */
-    int writeFileAtPath(QString path, QVariant userData, const char *buffer, size_t size, off_t offset, QVariantMap &error);
+    void writeFileAtPath(QString absolutePath, QVariantMap &error);
     
     /*!
      * abstract Preallocates space for the open file at the specified path.
@@ -367,7 +367,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result YES if the space was preallocated successfully.
      */
-    bool preallocateFileAtPath(QString path, QVariant userData, int options, off_t offset, off_t length, QVariantMap &error);
+    void preallocateFileAtPath(QString absolutePath, QVariantMap &error);
     
     /*!
      * abstract Atomically exchanges data between files.
@@ -378,7 +378,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result YES if data was exchanged successfully.
      */
-    bool exchangeDataOfItemAtPath(QString path1, QString path2, QVariantMap &error);
+    void exchangeDataOfItemAtPath(QString absolutePath1, QString absolutePath2, QVariantMap &error);
     
 #pragma mark Creating an Item
     
@@ -391,7 +391,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result YES if the directory was successfully created.
      */
-    bool createDirectoryAtPath(QString path, QVariantMap attributes, QVariantMap &error);
+    void createDirectoryAtPath(QString absolutePath, QVariantMap &error);
     
     /*!
      * abstract Creates and opens a file at the specified path.
@@ -407,7 +407,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result YES if the directory was successfully created.
      */
-    bool createFileAtPath(QString path, QVariantMap attributes, int flags, QVariant &userData, QVariantMap &error);
+    void createFileAtPath(QString absolutePath, QVariantMap &error);
     
 #pragma mark Moving an Item
     
@@ -422,7 +422,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result YES if the move was successful.
      */
-    bool moveItemAtPath(QString source, QString destination, QVariantMap &error);
+    void moveItemAtPath(QString absolutePath1, QString absolutePath2, QVariantMap &error);
     
 #pragma mark Removing an Item
     
@@ -436,7 +436,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result YES if the directory was successfully removed.
      */
-    bool removeDirectoryAtPath(QString path, QVariantMap &error);
+    void removeDirectoryAtPath(QString absolutePath, QVariantMap &error);
     
     /*!
      * abstract Removes the item at the given path.
@@ -448,7 +448,7 @@ public:
      * param error Should be filled with a POSIX error in case of failure.
      * result YES if the item was successfully removed.
      */
-    bool removeItemAtPath(QString path, QVariantMap &error);
+    void removeItemAtPath(QString absolutePath, QVariantMap &error);
     
 #pragma mark Linking an Item
     
@@ -460,7 +460,7 @@ public:
      * @param error Should be filled with a POSIX error in case of failure.
      * @result YES if the hard link was successfully created.
      */
-    bool linkItemAtPath(QString path, QString otherPath, QVariantMap &error);
+    void linkItemAtPath(QString absolutePath1, QString absolutePath2, QVariantMap &error);
     
 #pragma mark Symbolic Links
     
@@ -472,7 +472,7 @@ public:
      * @param error Should be filled with a POSIX error in case of failure.
      * @result YES if the symbolic link was successfully created.
      */
-    bool createSymbolicLinkAtPath(QString path, QString otherPath, QVariantMap &error);
+    void createSymbolicLinkAtPath(QString absolutePath1, QString absolutePath2, QVariantMap &error);
     
     /*!
      * @abstract Reads the destination of a symbolic link.
@@ -481,7 +481,7 @@ public:
      * @param error Should be filled with a POSIX error in case of failure.
      * @result The destination path of the symbolic link or nil on error.
      */
-    QString destinationOfSymbolicLinkAtPath(QString path, QVariantMap &error);
+    void destinationOfSymbolicLinkAtPath(QString absolutePath, QVariantMap &error);
     
 #pragma mark Extended Attributes
     
