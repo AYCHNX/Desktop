@@ -263,20 +263,21 @@ Application::~Application()
 
     // Remove the account from the account manager so it can be deleted.
     AccountManager::instance()->shutdown();
-#if defined(Q_OS_MAC)
-    if(cont)
-        cont->unmount();
-#endif
 
 #if defined(Q_OS_WIN)
-    Vfs_windows *_Vfs_windows = NULL;
-    _Vfs_windows = Vfs_windows::instance();
-    if (_Vfs_windows) {
-        qDebug() << Q_FUNC_INFO << " Up drive: " << _Vfs_windows;
+    Vfs_windows *vfs_win = NULL;
+    vfs_win = Vfs_windows::instance();
+    if (vfs_win) {
+        qDebug() << Q_FUNC_INFO << " Dokan Up Drive: " << vfs_win;
         WCHAR DriveLetter = L'X';
-        _Vfs_windows->downDrive(DriveLetter);
-    } else
-        qDebug() << Q_FUNC_INFO << " Bad up drive";
+        vfs_win->downDrive(DriveLetter);
+    } else {
+        qDebug() << Q_FUNC_INFO << " Dokan Bad Down Drive";
+    }
+#endif
+
+#if defined(Q_OS_MAC)
+    VfsMacController::instance()->unmount();
 #endif
 }
 
@@ -296,21 +297,7 @@ void Application::slotAccountStateRemoved(AccountState *accountState)
         disconnect(accountState->account().data(), &Account::serverVersionChanged,
             _gui.data(), &ownCloudGui::slotTrayMessageIfServerUnsupported);
     }
-#if defined(Q_OS_MAC)
-    if(cont)
-        cont->unmount();
-#endif
 
-#if defined(Q_OS_WIN)
-    Vfs_windows *_Vfs_windows = NULL;
-    _Vfs_windows = Vfs_windows::instance();
-    if (_Vfs_windows) {
-        qDebug() << Q_FUNC_INFO << " Up drive: " << _Vfs_windows;
-        WCHAR DriveLetter = L'X';
-        _Vfs_windows->downDrive(DriveLetter);
-    } else
-        qDebug() << Q_FUNC_INFO << " Bad up drive";
-#endif
     if (_folderManager) {
         disconnect(accountState, &AccountState::stateChanged,
             _folderManager.data(), &FolderMan::slotAccountStateChanged);
@@ -340,11 +327,12 @@ void Application::slotAccountStateAdded(AccountState *accountState)
     _gui->slotTrayMessageIfServerUnsupported(accountState->account().data());
 
     // Mount the virtual FileSystem.
-    #if defined(Q_OS_MAC)
-    ConfigFile cfgFile;
-    cont = new VfsMacController(cfgFile.defaultFileStreamMirrorPath(), cfgFile.defaultFileStreamSyncPath(), accountState, this);
-    #endif
-
+#if defined(Q_OS_MAC)
+    QString rootPath = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/.cachedFiles";
+    QString mountPath = "/Volumes/" + _theme->appName() + "fs";
+    VfsMacController::instance()->initialize(rootPath, mountPath, accountState);
+    VfsMacController::instance()->mount();
+#endif
 
 #if defined(Q_OS_WIN)
     ConfigFile cfgFile;

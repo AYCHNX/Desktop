@@ -101,9 +101,6 @@ private:
     QPointer<ownCloudGui> _gui;
 
     Theme *_theme;
-    #if defined(Q_OS_MAC)
-        VfsMacController *cont;
-    #endif
 
     bool _helpOnly;
     bool _versionOnly;

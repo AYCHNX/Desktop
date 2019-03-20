@@ -62,6 +62,7 @@
 #if defined(Q_OS_WIN)
 	#include "vfs_windows.h"
 #endif
+#include "configfile.h"
 
 namespace OCC {
 
@@ -1011,18 +1012,25 @@ void ownCloudGui::slotLogout()
     * JP 09/2018.
     * Down Virtual File System.
     */
-    #if defined(Q_OS_WIN)
-	Vfs_windows *_Vfs_windows = NULL;
-	_Vfs_windows = Vfs_windows::instance();
-	if (_Vfs_windows)
-	{
-		qDebug() << "\n dbg_sync " << Q_FUNC_INFO << "up Drive:  " << _Vfs_windows;
-		WCHAR DriveLetter = L'X';
-		_Vfs_windows->downDrive(DriveLetter);
-	}
-	else
-		qDebug() << "\n dbg_sync " << Q_FUNC_INFO << " BAD up Drive";
-     #endif
+    
+    ConfigFile cfg;
+    
+#if defined(Q_OS_WIN)
+    Vfs_windows *vfs_win = Vfs_windows::instance();
+    if (vfs_win) {
+        qDebug() << Q_FUNC_INFO << " Dokan RemoveDir: " << vfs_win;
+        WCHAR DriveLetter = L'X';
+        vfs_win->downDrive(DriveLetter);
+        //Sleep(2000);
+        //vfs_win->removeRecursively(cfg.defaultFileStreamMirrorPath());
+    } else {
+        qDebug() << Q_FUNC_INFO << " Dokan Bad RemoveDir";
+    }
+#endif
+    
+#if defined(Q_OS_MAC)
+    VfsMacController::instance()->unmount();
+#endif
 }
 
 void ownCloudGui::slotUnpauseAllFolders()
