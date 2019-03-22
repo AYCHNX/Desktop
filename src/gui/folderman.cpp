@@ -126,11 +126,18 @@ int FolderMan::unloadAndDeleteAllFolders()
 {
     int cnt = 0;
 
-    unloadFolder();
-    _folderMap.clear();
+    // clear the list of existing folders.
+    Folder::MapIterator i(_folderMap);
+    while (i.hasNext()) {
+        i.next();
+        Folder *f = i.value();
+        unloadFolder();
+        delete f;
+        cnt++;
+    }
     ASSERT(_folderMap.isEmpty());
 
-    _currentSyncFolder = nullptr;
+    _currentSyncFolder = 0;
     _scheduledFolders.clear();
     emit folderListChanged(_folderMap);
     emit scheduleQueueChanged();
@@ -679,8 +686,7 @@ void FolderMan::startScheduledSyncSoon()
     if (thread() != QThread::currentThread())
         slotStartScheduledFolderSync();
     else
-		_startScheduledSyncTimer.start(msDelay);
-
+        _startScheduledSyncTimer.start(msDelay);
 }
 
 /*
@@ -763,13 +769,27 @@ void FolderMan::slotEtagPollTimerTimeout()
 
 void FolderMan::slotRemoveFoldersForAccount(AccountState *accountState)
 {
-    removeFolder();
+    QVarLengthArray<Folder *, 16> foldersToRemove;
+    Folder::MapIterator i(_folderMap);
+    while (i.hasNext()) {
+        i.next();
+        Folder *folder = i.value();
+        if (folder->accountState() == accountState) {
+            foldersToRemove.append(folder);
+        }
+    }
+    
+    foreach (const auto &f, foldersToRemove) {
+        removeFolder();
+    }
     emit folderListChanged(_folderMap);
 }
 
 void FolderMan::slotForwardFolderSyncStateChange()
 {
-    emit folderSyncStateChange();
+    if (Folder *f = qobject_cast<Folder *>(sender())) {
+        emit folderSyncStateChange();
+    }
 }
 
 void FolderMan::slotServerVersionChanged(Account *account)
@@ -857,6 +877,9 @@ void FolderMan::slotFolderSyncFinished(const SyncResult &)
         qPrintable(_currentSyncFolder->shortGuiLocalPath()),
         qPrintable(_currentSyncFolder->accountState()->account()->displayName()),
         qPrintable(_currentSyncFolder->remoteUrl().toString()));
+
+    //TODO FUSE
+    //_currentSyncFolder = 0;
 
     startScheduledSyncSoon();
 }
@@ -973,14 +996,15 @@ void FolderMan::removeFolder()
 
     qCInfo(lcFolderMan) << "Removing " << _currentSyncFolder->alias();
 
-    const bool currentlyRunning = _currentSyncFolder->isBusy();
+    const bool currentlyRunning = _currentSyncFolder;
     if (currentlyRunning) {
         // abort the sync now
         terminateSyncProcess();
     }
 
-    _scheduledFolders.clear();
-    emit scheduleQueueChanged();
+    if (_scheduledFolders.removeAll(_currentSyncFolder)>0){
+        emit scheduleQueueChanged();
+    }
 
     _currentSyncFolder->wipe();
     _currentSyncFolder->setSyncPaused(true);
