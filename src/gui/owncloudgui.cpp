@@ -1016,16 +1016,7 @@ void ownCloudGui::slotLogout()
     ConfigFile cfg;
     
 #if defined(Q_OS_WIN)
-    Vfs_windows *vfs_win = Vfs_windows::instance();
-    if (vfs_win) {
-        qDebug() << Q_FUNC_INFO << " Dokan RemoveDir: " << vfs_win;
-        WCHAR DriveLetter = L'X';
-        vfs_win->downDrive(DriveLetter);
-        //Sleep(2000);
-        //vfs_win->removeRecursively(cfg.defaultFileStreamMirrorPath());
-    } else {
-        qDebug() << Q_FUNC_INFO << " Dokan Bad RemoveDir";
-    }
+    VfsWindows::instance()->unmount();
 #endif
     
 #if defined(Q_OS_MAC)
