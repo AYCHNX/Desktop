@@ -35,7 +35,9 @@
 #include "filesystem.h"
 #include "clientsideencryptionjobs.h"
 #include "syncresult.h"
+#if defined(Q_OS_WIN)
 #include "vfs_windows.h"
+#endif
 
 #include <math.h>
 
@@ -1168,6 +1170,10 @@ void AccountSettings::slotDeleteAccount()
 
 #if defined(Q_OS_WIN)
     VfsWindows::instance()->unmount();
+#endif
+    
+#if defined(Q_OS_MAC)
+    VfsMacController::instance()->unmount();
 #endif
 }
 

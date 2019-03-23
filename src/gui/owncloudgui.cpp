@@ -1078,6 +1078,13 @@ void ownCloudGui::slotShowSettings()
     raiseDialog(_settingsDialog.data());
 }
 
+void ownCloudGui::slotCloseSettings()
+{
+#if defined(Q_OS_MAC)
+    _settingsDialog->close();
+#endif
+}
+
 void ownCloudGui::slotShowSyncProtocol()
 {
     slotShowSettings();

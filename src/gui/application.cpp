@@ -216,7 +216,6 @@ Application::Application(int &argc, char **argv)
 #if WITH_LIBCLOUDPROVIDERS
     _gui->setupCloudProviders();
 #endif
-
     // Enable word wrapping of QInputDialog (#4197)
     setStyleSheet("QInputDialog QLabel { qproperty-wordWrap:1; }");
 
@@ -304,6 +303,10 @@ void Application::slotAccountStateRemoved(AccountState *accountState)
         // allow to add a new account if there is non any more. Always think
         // about single account theming!
         OwncloudSetupWizard::runWizard(this, SLOT(slotownCloudWizardDone(int)));
+    }
+    
+    if (_gui) {
+        _gui->slotCloseSettings();
     }
 }
 

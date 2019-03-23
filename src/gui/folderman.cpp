@@ -895,6 +895,10 @@ Folder *FolderMan::addFolderInternal(FolderDefinition folderDefinition,
         folderDefinition.alias = alias + QString::number(++count);
     }
 
+    if(SyncJournalDb::instance()) {
+        SyncJournalDb::instance()->~SyncJournalDb();
+    }
+
     auto folder = new Folder(folderDefinition, accountState, this);
 
     qCInfo(lcFolderMan) << "Adding folder to Folder Map " << folder << folder->alias();

@@ -89,6 +89,7 @@ public slots:
     void slotShowGuiMessage(const QString &title, const QString &message);
     void slotFoldersChanged();
     void slotShowSettings();
+    void slotCloseSettings();
     void slotShowSyncProtocol();
     void slotShutdown();
     void slotSyncStateChange();

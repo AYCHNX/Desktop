@@ -102,10 +102,8 @@ SyncJournalDb::SyncJournalDb(const QString &dbFilePath, QObject *parent)
         _journalMode = defaultJournalMode(_dbFile);
     }
 
-#ifndef Q_OS_LINUX
     ASSERT(!_instance);
     _instance = this;
-#endif
 }
 
 SyncJournalDb *SyncJournalDb::instance()
@@ -682,7 +680,6 @@ bool SyncJournalDb::updateDatabaseStructure()
 
 bool SyncJournalDb::updateMetadataTableStructure()
 {
-
     auto columns = tableColumns("metadata");
     bool re = true;
 
