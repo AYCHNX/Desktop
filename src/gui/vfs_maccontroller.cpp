@@ -57,7 +57,10 @@ void VfsMacController::didUnmount(QVariantMap userInfo)
 {
     Q_UNUSED(userInfo);
     qDebug() << "Got didUnmount notification.";
-    QApplication::quit();
+    if(fs_->closeExternally) {
+        QApplication::quit();
+    }
+    fs_->closeExternally = true;
 }
 
 void VfsMacController::mount()
@@ -69,6 +72,7 @@ void VfsMacController::mount()
 void VfsMacController::unmount()
 {
     if(fs_)
+        fs_->closeExternally = false;
         fs_->unmount();
 }
 

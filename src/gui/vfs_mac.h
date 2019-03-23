@@ -537,6 +537,7 @@ public:
     bool enableExchangeData();
     bool enableExtendedTimes();
     bool enableSetVolumeName();
+    bool closeExternally = true;
     void fuseInit();
     void fuseDestroy();
     
