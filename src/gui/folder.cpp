@@ -617,6 +617,10 @@ void Folder::updateFuseCreatedFile(const QString &path, bool is_fuse_created_fil
     _engine->updateFuseCreatedFile(path, is_fuse_created_file);
 }
 
+void Folder::updateFusePath(const QString &oldPath, const QString &newPath){
+    _engine->updateFusePath(oldPath, newPath);
+}
+
 void Folder::startSync()
 {
     if (isBusy()) {

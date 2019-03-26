@@ -551,6 +551,18 @@ bool cysnc_update_is_fuse_created_file(CSYNC *ctx, const QByteArray &relativePat
 	return false;
 }
 
+bool cysnc_update_path(CSYNC *ctx, const QByteArray &relativeOldPath, const QByteArray &relativeNewPath)
+{
+	if (ctx->local.files.findFile(relativeOldPath)) {
+		ctx->local.files.findFile(relativeOldPath)->path = relativeNewPath;
+
+		return true;
+
+	}
+
+	return false;
+}
+
 std::unique_ptr<csync_file_stat_t> csync_file_stat_s::fromSyncJournalFileRecord(const OCC::SyncJournalFileRecord &rec)
 {
     std::unique_ptr<csync_file_stat_t> st(new csync_file_stat_t);

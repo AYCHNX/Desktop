@@ -115,6 +115,7 @@ public:
 
     void updateLocalFileTree(const QString &path, csync_instructions_e instruction);
 	void updateFuseCreatedFile(const QString &path, bool is_fuse_created_file);
+	void updateFusePath(const QString &oldPath, const QString &newPath);
 
     int localTreeSize();
 

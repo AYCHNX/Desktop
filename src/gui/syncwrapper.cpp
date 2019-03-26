@@ -1,5 +1,6 @@
 #include "syncwrapper.h"
 #include "socketapi.h"
+#include "csync/vio/csync_vio_local.h"
 
 #include <qdir.h>
 
@@ -72,11 +73,37 @@ namespace OCC {
 		sync(path, false, CSYNC_INSTRUCTION_NONE);
 	}
 
-	void SyncWrapper::moveItemAtPath(const QString path)
+	void SyncWrapper::moveItemAtPath(const QString oldPath, const QString newPath)
 	{
-		FolderMan::instance()->currentSyncFolder()->updateFuseCreatedFile(getRelativePath(path), false);
-		sync(path, false, CSYNC_INSTRUCTION_EVAL_RENAME);
+		FolderMan::instance()->currentSyncFolder()->updateFuseCreatedFile(getRelativePath(oldPath), false);
+		FolderMan::instance()->currentSyncFolder()->updateFusePath(getRelativePath(oldPath), getRelativePath(newPath));
+		sync(newPath, false, CSYNC_INSTRUCTION_EVAL_RENAME);
 	}
+
+	
+    void SyncWrapper::setFileRecord(csync_file_stat_t *remoteNode, const QString localPath) {
+            //otherwise rename and move will never work
+            qDebug() << Q_FUNC_INFO << "results: " << remoteNode->path << remoteNode->type;
+            OCC::SyncJournalFileRecord rec;
+            if (SyncJournalDb::instance()->getFileRecord(remoteNode->path, &rec)) {
+                    QByteArray fullPath(localPath.toLatin1() + remoteNode->path);
+                    if (csync_vio_local_stat(fullPath.constData(), remoteNode) == 0) {
+                            rec._inode = remoteNode->inode;
+                            qCDebug(lcSyncWrapper) << remoteNode->path << "Retrieved inode " << remoteNode->inode;
+                    }
+
+                    rec._path = remoteNode->path;
+                    rec._etag = remoteNode->etag;
+                    rec._fileId = remoteNode->file_id;
+                    rec._modtime = remoteNode->modtime;
+                    rec._type = remoteNode->type;
+                    rec._fileSize = remoteNode->size;
+                    rec._remotePerm = remoteNode->remotePerm;
+                    rec._checksumHeader = remoteNode->checksumHeader;
+                    SyncJournalDb::instance()->setFileRecordMetadata(rec);
+            }
+    }
+
 
 	void SyncWrapper::sync(const QString path, bool is_fuse_created_file, csync_instructions_e instruction)
 	{

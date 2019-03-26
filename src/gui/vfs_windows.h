@@ -93,7 +93,7 @@ signals:
     void openFile(const QString path);
     void writeFile(const QString path);
     void deleteItem(const QString path);
-    void move(const QString path);
+    void move(const QString oldPath, const QString newPath);
 
 public slots:
 	void folderFileListFinish(OCC::DiscoveryDirectoryResult *dr);

@@ -571,8 +571,7 @@ int SyncEngine::treewalkFile(csync_file_stat_t *file, csync_file_stat_t *other, 
         item->_etag = file->etag;
     }
 
-
-    if (!item->_inode) {
+    if (!item->_inode && file->inode) {
         item->_inode = file->inode;
     }
 
@@ -1690,6 +1689,16 @@ void SyncEngine::updateFuseCreatedFile(const QString &path, bool is_fuse_created
             if (cysnc_update_is_fuse_created_file(_csync_ctx.data(), relativePath.toLatin1(), is_fuse_created_file)) {
                 qDebug() << "## UPDATED cysnc_update_is_fuse_created_file ######################################################" << relativePath << _csync_ctx->local.files.findFile(relativePath.toLatin1())->is_fuse_created_file;
             }
+        }
+    }
+}
+
+void SyncEngine::updateFusePath(const QString &oldPath, const QString &newPath){
+    if(!_csync_ctx.isNull()){
+        //_csync_ctx->fuseEnabled = true;
+
+        if (cysnc_update_path(_csync_ctx.data(), oldPath.toLatin1(), newPath.toLatin1())) {
+            //qDebug() << "## UPDATED cysnc_update_path ####" << oldPath << _csync_ctx->local.files.findFile(newPath.toLatin1())->path;
         }
     }
 }

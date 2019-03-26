@@ -170,7 +170,8 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
 
                 /* First, check that the file is NOT in our tree (another file with the same name was added) */
                 if (our_tree->findFile(basePath)) {
-                    other = nullptr;
+                    //other = ctx->current == LOCAL_REPLICA? other_tree->findFile(basePath) : nullptr;
+					other = other_tree->findFile(basePath);
                     qCDebug(lcReconcile, "Origin found in our tree : %s", basePath.constData());
                 } else {
                     /* Find the potential rename source file in the other tree.

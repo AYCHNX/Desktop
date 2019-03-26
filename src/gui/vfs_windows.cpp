@@ -2494,10 +2494,10 @@ void VfsWindows::createFileAtPath(QString path, QVariantMap &error)
     //emit createItem(path);
 }
 
-void VfsWindows::moveFileAtPath(QString oldPath, QString newPath, QVariantMap &error)
+void VfsWindows::moveFileAtPath(QString path, QString npath,QVariantMap &error)
 {
     //TODO: remove old path
-	emit move(newPath);
+	emit move(path, npath);
 }
 
 void VfsWindows::createDirectoryAtPath(QString path, QVariantMap &error)
@@ -2508,7 +2508,7 @@ void VfsWindows::createDirectoryAtPath(QString path, QVariantMap &error)
 void VfsWindows::moveDirectoryAtPath(QString path, QString npath, QVariantMap &error)
 {
 	//TODO remove old path
-	emit move(npath);
+	emit move(path, npath);
 }
 
 void VfsWindows::openFileAtPath(QString path, QVariantMap &error)
@@ -2641,6 +2641,7 @@ QStringList *VfsWindows::contentsOfDirectoryAtPath(QString path, QVariantMap &er
 				}
 			}
 			emit addToFileTree(_fileListMap.value(path)->list.at(i)->type, completePath);
+			SyncWrapper::instance()->setFileRecord(_fileListMap.value(path)->list.at(i).get(), rootPath + (path.endsWith("/")?path:(path+"/")));
 		}
 		//if (_fileListMap.value(path)->list.at(i)->type == ItemTypeFile)
 		//qDebug() << Q_FUNC_INFO << "results: " << r->name << r->type;

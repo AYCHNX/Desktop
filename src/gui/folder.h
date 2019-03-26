@@ -281,6 +281,8 @@ public slots:
 
 	void updateFuseCreatedFile(const QString & path, bool is_fuse_created_files);
 
+	void updateFusePath(const QString & oldPath, const QString & newPath);
+
     int slotDiscardDownloadProgress();
     int downloadInfoCount();
     int slotWipeErrorBlacklist();

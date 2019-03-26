@@ -17,6 +17,8 @@ public:
     static SyncWrapper *instance();
     ~SyncWrapper() {}
 
+	void setFileRecord(csync_file_stat_t *remoteNode, const QString localPath);
+
 public slots:
     //void updateSyncQueue();
     void updateFileTree(int type, const QString path);
@@ -26,7 +28,7 @@ public slots:
     void writeFileAtPath(const QString path);
 	void releaseFileAtPath(const QString path);
     void deleteItemAtPath(const QString path);
-    void moveItemAtPath(const QString path);
+    void moveItemAtPath(const QString oldPath, const QString newPath);
 
 signals:
     void syncFinish();

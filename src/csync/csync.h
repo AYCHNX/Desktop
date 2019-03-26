@@ -351,6 +351,8 @@ bool OCSYNC_EXPORT cysnc_update_file(CSYNC *ctx, const char *absolutePath, const
 
 bool OCSYNC_EXPORT cysnc_update_is_fuse_created_file(CSYNC *ctx, const QByteArray &relativePath, bool is_fuse_created_file);
 
+bool OCSYNC_EXPORT cysnc_update_path(CSYNC *ctx, const QByteArray &relativeOldPath, const QByteArray &relativeNewPath);
+
 time_t OCSYNC_EXPORT oc_httpdate_parse( const char *date );
 
 /**
