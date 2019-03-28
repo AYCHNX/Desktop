@@ -170,8 +170,7 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
 
                 /* First, check that the file is NOT in our tree (another file with the same name was added) */
                 if (our_tree->findFile(basePath)) {
-                    //other = ctx->current == LOCAL_REPLICA? other_tree->findFile(basePath) : nullptr;
-					other = other_tree->findFile(basePath);
+					other = nullptr;
                     qCDebug(lcReconcile, "Origin found in our tree : %s", basePath.constData());
                 } else {
                     /* Find the potential rename source file in the other tree.
@@ -242,7 +241,31 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
                 qCDebug(lcReconcile, "Finding rename origin through inode %" PRIu64 "",
                     cur->inode);
                 ctx->statedb->getFileRecordByInode(cur->inode, &base);
-                renameCandidateProcessing(base._path);
+				other = other_tree->findFile(base._path);
+				if (!other) {
+					cur->instruction = CSYNC_INSTRUCTION_NEW;
+				} else if (cur->type == ItemTypeDirectory
+					// The local replica is reconciled first, so the remote tree would
+					// have either NONE or UPDATE_METADATA if the remote file is safe to
+					// move.
+					// In the remote replica, REMOVE is also valid (local has already
+					// been reconciled). NONE can still happen if the whole parent dir
+					// was set to REMOVE by the local reconcile.
+					|| other->instruction == CSYNC_INSTRUCTION_NONE
+					|| other->instruction == CSYNC_INSTRUCTION_UPDATE_METADATA
+					|| other->instruction == CSYNC_INSTRUCTION_REMOVE) {
+                    qCDebug(lcReconcile, "Switching %s to RENAME to %s",
+                        other->path.constData(), cur->path.constData());
+                    other->instruction = CSYNC_INSTRUCTION_RENAME;
+                    other->rename_path = cur->path;
+                    if( !cur->file_id.isEmpty() ) {
+                        other->file_id = cur->file_id;
+                    }
+                    other->inode = cur->inode;
+                    cur->instruction = CSYNC_INSTRUCTION_NONE;
+                    // We have consumed 'other': exit this loop to not consume another one.
+                    processedRename = true;
+                }
             } else {
                 ASSERT(ctx->current == REMOTE_REPLICA);
 
