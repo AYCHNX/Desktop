@@ -28,6 +28,7 @@
 
 #include "quotainfo.h"
 #include "accountstate.h"
+#include "configfile.h"
 
 class VfsMac;
 
@@ -39,6 +40,7 @@ public:
     static VfsMacController* instance();
     void mount();
     void unmount();
+    void cleanCacheFolder();
     void initialize(QString rootPath, QString mountPath, OCC::AccountState *accountState);
     
 public slots:
@@ -52,8 +54,10 @@ private:
     OCC::QuotaInfo *qi_;
     static VfsMacController *_instance;
     QStringList options;
+    QString rootPath;
     QString mountPath;
     explicit VfsMacController();
+    OCC::ConfigFile cfgFile;
 };
 
 #endif

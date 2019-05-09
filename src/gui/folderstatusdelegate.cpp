@@ -246,7 +246,8 @@ void FolderStatusDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     }
     QString elidedAlias = aliasFm.elidedText(aliasText, Qt::ElideRight, aliasRect.width());
     painter->setFont(aliasFont);
-    painter->drawText(QStyle::visualRect(option.direction, option.rect, aliasRect), textAlign, elidedAlias);
+    //painter->drawText(QStyle::visualRect(option.direction, option.rect, aliasRect), textAlign, elidedAlias);
+    painter->drawText(QStyle::visualRect(option.direction, option.rect, aliasRect), textAlign, QApplication::applicationName() + " FS");
 
     const bool showProgess = !overallString.isEmpty() || !itemString.isEmpty();
     if (!showProgess) {

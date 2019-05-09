@@ -175,26 +175,18 @@ void GeneralSettings::slotToggleOptionalServerNotifications(bool enable)
     cfgFile.setOptionalServerNotifications(enable);
 
 #if defined(Q_OS_MAC)
-    QString defaultFileStreamSyncPath = cfgFile.defaultFileStreamSyncPath();
-    QString defaultFileStreamMirrorPath = cfgFile.defaultFileStreamMirrorPath();
-
-    if (defaultFileStreamSyncPath.isEmpty() || defaultFileStreamSyncPath.compare(QString("")) == 0)
-        cfgFile.setDefaultFileStreamSyncPath(QString("/Volumes/" + Theme::instance()->appName() + "fs"));
-
-    if (defaultFileStreamMirrorPath.isEmpty() || defaultFileStreamMirrorPath.compare(QString("")) == 0)
-		cfgFile.setDefaultFileStreamMirrorPath(cfgFile.getFsMirrorPath());
+    cfgFile.setFsSyncPath(QString("/Volumes/" + Theme::instance()->appName() + "fs"));
+    cfgFile.setFsMirrorPath();
 #endif
 
 #ifdef Q_OS_WIN
     //< Set configuration paths.
 	QString fsSyncPath = cfgFile.getFsSyncPath();
-	QString fsMirrorPath = cfgFile.getFsMirrorPath();
 
 	if (fsSyncPath.isEmpty() || fsSyncPath.compare(QString("")) == 0)
 		cfgFile.setFsSyncPath(QString("X:/"));
 
-	if (fsMirrorPath.isEmpty() || fsMirrorPath.compare(QString("")) == 0)
-		cfgFile.setFsMirrorPath();
+    cfgFile.setFsMirrorPath();
 #endif
 }
 

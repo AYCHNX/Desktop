@@ -336,10 +336,6 @@ void OwncloudSetupWizard::slotConnectToOCUrl(const QString &url)
                                             .arg(url));
 
     testOwnCloudConnect();
-
-	emit _ocWizard->basicSetupFinished(1);
-    _ocWizard->close();
-    emit ownCloudWizardDone(0);
 }
 
 void OwncloudSetupWizard::testOwnCloudConnect()

@@ -327,9 +327,7 @@ void Application::slotAccountStateAdded(AccountState *accountState)
 	ConfigFile cfgFile;
 
 #if defined(Q_OS_MAC)
-    QString rootPath = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/.cachedFiles";
-    QString mountPath = "/Volumes/" + _theme->appName() + "fs";
-    VfsMacController::instance()->initialize(rootPath, mountPath, accountState);
+    VfsMacController::instance()->initialize(cfgFile.getFsMirrorPath(), cfgFile.getFsSyncPath(), accountState);
     VfsMacController::instance()->mount();
 #endif
 

@@ -963,14 +963,14 @@ QString SocketApi::buildRegisterPathMessage(const QString &pathC)
 QString SocketApi::buildRegisterFsMessage()
 {
 	ConfigFile cfgFile;
-	QString message = QLatin1String("REGISTER_DRIVEFS:");
+    QString message = QLatin1String("REGISTER_DRIVEFS:");
 #if defined(Q_OS_WIN)
-	QString letter = cfgFile.getFsSyncPath();
-	letter.truncate(letter.length() - 2);
+    QString letter = cfgFile.getFsSyncPath();
+    letter.truncate(letter.length() - 2);
 	message.append(letter);
 #elif defined(Q_OS_MAC)
-	QFileInfo fi(cfgFile.getFsSyncPath());
-	message.append(QDir::toNativeSeparators(fi.absoluteFilePath()));
+    QFileInfo fi(cfgFile.getFsSyncPath());
+    message.append(QDir::toNativeSeparators(fi.absoluteFilePath()));
 #endif
 	return message;
 }
@@ -1063,8 +1063,7 @@ void SocketApi::command_GET_DOWNLOAD_MODE(const QString &localFileC, SocketListe
 #if defined(Q_OS_WIN)
 	localFile.replace(cfgFile.getFsSyncPath(), QString("").replace("\\", "/"));
 #elif defined(Q_OS_MAC)
-	QString relative_prefix = cfgFile.getFsMirrorPath();
-	localFile = localFile.replace(0, relative_prefix.length(), QString(""));
+	localFile = localFile.replace(0, cfgFile.getFsMirrorPath().length(), QString(""));
 #endif
     qDebug() << Q_FUNC_INFO << " localFile_0: " << localFile;
 

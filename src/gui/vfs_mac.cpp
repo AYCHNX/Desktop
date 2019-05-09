@@ -33,7 +33,6 @@
 
 #include <sys/ioctl.h>
 #include <dirent.h>
-#include <configfile.h>
 
 #define G_PREFIX                       "org"
 #define G_KAUTH_FILESEC_XATTR G_PREFIX ".apple.system.Security"
@@ -63,7 +62,7 @@ private:
     
 public:
     explicit InternalVfsMac(QObject *parent = 0, bool isThreadSafe=false)
-                    : QObject(parent)
+        : QObject(parent)
     {
         status_ = VfsMac::GMUserFileSystem_NOT_MOUNTED;
         isThreadSafe_ = isThreadSafe;
@@ -100,9 +99,11 @@ public:
         return "-omodules=threadid:subdir,subdir="+ rootPath_;
     }
 
-    VfsMac::GMUserFileSystemStatus status () {
+    VfsMac::GMUserFileSystemStatus status()
+    {
         return this->status_;
     }
+
     void setStatus (VfsMac::GMUserFileSystemStatus status) { this->status_ = status; }
     bool isThreadSafe () { return isThreadSafe_; }
     bool supportsAllocate () { return supportsAllocate_; };
@@ -119,7 +120,6 @@ public:
     bool isReadOnly () { return isReadOnly_; }
     void setIsReadOnly (bool val) { isReadOnly_ = val; }
     ~InternalVfsMac() {  }
-    
 };
 
 VfsMac::VfsMac(QString rootPath, bool isThreadSafe, OCC::AccountState *accountState, QObject *parent)
@@ -150,15 +150,19 @@ VfsMac::VfsMac(QString rootPath, bool isThreadSafe, OCC::AccountState *accountSt
 bool VfsMac::enableAllocate() {
     return internal_->supportsAllocate();
 }
+
 bool VfsMac::enableCaseSensitiveNames() {
     return internal_->supportsCaseSensitiveNames();
 }
+
 bool VfsMac::enableExchangeData() {
     return internal_->supportsExchangeData();
 }
+
 bool VfsMac::enableExtendedTimes() {
     return internal_->supportsExtendedTimes();
 }
+
 bool VfsMac::enableSetVolumeName() {
     return internal_->supportsSetVolumeName();
 }
@@ -208,7 +212,8 @@ void VfsMac::mountAtPath(QString mountPath, QStringList options, bool shouldFore
     }
 }
 
-void VfsMac::unmount() {
+void VfsMac::unmount()
+{
     if (internal_.data() != nullptr && internal_->status() == GMUserFileSystem_MOUNTED) {
         int ret = ::unmount(internal_->mountPath().toLatin1().data(), 0);
         if (ret != 0)
@@ -239,6 +244,7 @@ bool VfsMac::invalidateItemAtPath(QString path, QVariantMap &error)
             ret = 0;
         }
     }
+    
     if (ret != 0)
     {
         error = VfsMac::errorWithCode(ret);
@@ -559,9 +565,8 @@ void VfsMac::removeItemAtPath(QString absolutePath, QVariantMap &error)
 
 void VfsMac::moveItemAtPath(QString absolutePath1, QString absolutePath2, QVariantMap &error)
 {
-    Q_UNUSED(absolutePath1);
     Q_UNUSED(error);
-	emit move(absolutePath2);
+	emit move(absolutePath1, absolutePath2);
 }
 
 #pragma mark Linking an Item
@@ -610,9 +615,8 @@ void VfsMac::folderFileListFinish(OCC::DiscoveryDirectoryResult *dr)
 
 void *VfsMac::contentsOfDirectoryAtPath(QString absolutePath, QVariantMap &error)
 {
-    OCC::ConfigFile cfg;
     QString relativePath = absolutePath;
-    relativePath.replace(cfg.defaultFileStreamMirrorPath(), "");
+    relativePath.replace(cfgFile.getFsMirrorPath(), "");
         
     _mutex.lock();
     emit startRemoteFileListJob(relativePath);
@@ -949,24 +953,6 @@ bool VfsMac::removeExtendedAttribute(QString name, QString path, QVariantMap &er
 
 #define SET_CAPABILITY(conn, flag, enable)
 #define MAYBE_USE_ERROR(var, error)
-/*
-do {
-    if (enable) {
-        (conn)->want |= (flag);
-    } else {
-        (conn)->want &= ~(flag);
-    }
-} while (0)
-
-
-qDebug() << error;
-if (!error.empty() && error.value("domain").toString() == FileManager::FMPOSIXErrorDomain) {
-    int code = error.value("code").toInt();
-    if (code != 0) {
-        (var) = -code;
-    }
-}
-*/
 
 static void* fusefm_init(struct fuse_conn_info* conn)
 {
@@ -1121,7 +1107,8 @@ static int fusefm_readlink(const char *path, char *buf, size_t size)
     return 0;
 }
 
-static int fusefm_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
+static int fusefm_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
+{
     DIR *dp;
     struct dirent *de;
     
@@ -1300,7 +1287,8 @@ static QDateTime dateWithTimespec(const struct timespec* spec)
     return QDateTime::fromMSecsSinceEpoch(time_sec*1000);
 }
 
-static int fusefm_fsetattr_x(const char *path, struct setattr_x *attr, struct fuse_file_info *fi) {
+static int fusefm_fsetattr_x(const char *path, struct setattr_x *attr, struct fuse_file_info *fi)
+{
     int res;
     uid_t uid = -1;
     gid_t gid = -1;
@@ -1415,7 +1403,8 @@ static int fusefm_fsetattr_x(const char *path, struct setattr_x *attr, struct fu
     return 0;
 }
 
-static int fusefm_setattr_x(const char *path, struct setattr_x *attr) {
+static int fusefm_setattr_x(const char *path, struct setattr_x *attr)
+{
     int res;
     uid_t uid = -1;
     gid_t gid = -1;
@@ -1531,7 +1520,8 @@ static int fusefm_setattr_x(const char *path, struct setattr_x *attr) {
     return 0;
 }
 
-static int fusefm_listxattr(const char *path, char *list, size_t size) {
+static int fusefm_listxattr(const char *path, char *list, size_t size)
+{
     ssize_t res = listxattr(path, list, size, XATTR_NOFOLLOW);
     if (res > 0) {
         if (list) {
@@ -1565,7 +1555,8 @@ static int fusefm_listxattr(const char *path, char *list, size_t size) {
     return res;
 }
 
-static int fusefm_getxattr(const char *path, const char *name, char *value, size_t size, uint32_t position) {
+static int fusefm_getxattr(const char *path, const char *name, char *value, size_t size, uint32_t position)
+{
     int res;
     
     if (strcmp(name, A_KAUTH_FILESEC_XATTR) == 0) {
@@ -1588,7 +1579,8 @@ static int fusefm_getxattr(const char *path, const char *name, char *value, size
     return res;
 }
 
-static int fusefm_setxattr(const char *path, const char *name, const char *value, size_t size, int flags, uint32_t position) {
+static int fusefm_setxattr(const char *path, const char *name, const char *value, size_t size, int flags, uint32_t position)
+{
     int res;
     
     if (!strncmp(name, XATTR_APPLE_PREFIX, sizeof(XATTR_APPLE_PREFIX) - 1)) {
@@ -1615,7 +1607,8 @@ static int fusefm_setxattr(const char *path, const char *name, const char *value
     return 0;
 }
 
-static int fusefm_removexattr(const char *path, const char *name) {
+static int fusefm_removexattr(const char *path, const char *name)
+{
     int res;
     
     if (strcmp(name, A_KAUTH_FILESEC_XATTR) == 0) {
@@ -1638,7 +1631,8 @@ static int fusefm_removexattr(const char *path, const char *name) {
 
 #undef MAYBE_USE_ERROR
 
-static int fusefm_getattr(const char *path, struct stat *stbuf) {
+static int fusefm_getattr(const char *path, struct stat *stbuf)
+{
     int res;
     
     res = lstat(path, stbuf);
@@ -1657,7 +1651,8 @@ static int fusefm_getattr(const char *path, struct stat *stbuf) {
     return 0;
 }
 
-static int fusefm_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
+static int fusefm_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi)
+{
     int res;
     
     (void)path;
@@ -1680,7 +1675,8 @@ struct loopback_dirp {
     off_t offset;
 };
 
-static int fusefm_opendir(const char *path, struct fuse_file_info *fi) {
+static int fusefm_opendir(const char *path, struct fuse_file_info *fi)
+{
     printf("fusefm_opendir %s\n", path);
     
     QVariantMap error;
@@ -1708,11 +1704,13 @@ static int fusefm_opendir(const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
-static inline struct loopback_dirp *get_dirp(struct fuse_file_info *fi) {
+static inline struct loopback_dirp *get_dirp(struct fuse_file_info *fi)
+{
     return (struct loopback_dirp *)(uintptr_t)fi->fh;
 }
 
-static int fusefm_releasedir(const char *path, struct fuse_file_info *fi) {
+static int fusefm_releasedir(const char *path, struct fuse_file_info *fi)
+{
     struct loopback_dirp *d = get_dirp(fi);
     
     (void)path;
@@ -1723,7 +1721,8 @@ static int fusefm_releasedir(const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
-static int fusefm_mknod(const char *path, mode_t mode, dev_t rdev) {
+static int fusefm_mknod(const char *path, mode_t mode, dev_t rdev)
+{
     int res;
     
     if (S_ISFIFO(mode)) {
@@ -1739,7 +1738,8 @@ static int fusefm_mknod(const char *path, mode_t mode, dev_t rdev) {
     return 0;
 }
 
-static int fusefm_getxtimes(const char *path, struct timespec *bkuptime, struct timespec *crtime) {
+static int fusefm_getxtimes(const char *path, struct timespec *bkuptime, struct timespec *crtime)
+{
     int res;
     
     struct attrlist attributes;
@@ -1777,7 +1777,8 @@ static int fusefm_getxtimes(const char *path, struct timespec *bkuptime, struct 
     return 0;
 }
 
-static int fusefm_statfs(const char *path, struct statvfs *stbuf) {
+static int fusefm_statfs(const char *path, struct statvfs *stbuf)
+{
     int res;
     
     res = statvfs(path, stbuf);
@@ -1788,7 +1789,8 @@ static int fusefm_statfs(const char *path, struct statvfs *stbuf) {
     return 0;
 }
 
-static int fusefm_flush(const char *path, struct fuse_file_info *fi) {
+static int fusefm_flush(const char *path, struct fuse_file_info *fi)
+{
     int res;
     
     (void)path;
