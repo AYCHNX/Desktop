@@ -1,16 +1,18 @@
 #ifndef LBCONTROLLER
 #define LBCONTROLLER
 #define FUSE_USE_VERSION 26
-#include<QObject>
-#include<QStringList>
-#include "accountstate.h"
 
 #include <fuse.h>
 #include <fuse/fuse_lowlevel.h>
 
 #include <QMutex>
 #include <QWaitCondition>
+#include<QObject>
+#include<QStringList>
+
+#include "accountstate.h"
 #include "syncwrapper.h"
+#include "configfile.h"
 
 const QString  kGMUserFileSystemContextUserIDKey = "kGMUserFileSystemContextUserIDKey";
 const QString  kGMUserFileSystemContextGroupIDKey = "kGMUserFileSystemContextGroupIDKey";
@@ -65,7 +67,8 @@ class InternalVfsMac;
  * LoopbackController* and the userInfo will always contain at least the
  * mountPath.<br>
  *
- */                   
+ */
+
 class VfsMac : public QObject
 {
     Q_OBJECT
@@ -80,6 +83,8 @@ private:
     
     QPointer<OCC::AccountState> accountState_;
     int _counter = 0;
+
+    OCC::ConfigFile cfgFile;
 
 	// To sync
     OCC::SyncWrapper *_syncWrapper;
@@ -569,8 +574,7 @@ signals:
     void openFile(const QString path);
     void releaseFile(const QString path);
     void deleteItem(const QString path);
-    void move(const QString path);
-    
+    void move(const QString oldPath, QString newPath);
 };
 
 #endif

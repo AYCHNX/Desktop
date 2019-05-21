@@ -609,7 +609,7 @@ void OwncloudSetupWizard::slotAssistantFinished(int result)
         auto account = applyAccountChanges();
 
         ConfigFile cfgFile;
-        QString localFolder = FolderDefinition::prepareLocalPath(cfgFile.defaultFileStreamMirrorPath());
+		QString localFolder = FolderDefinition::prepareLocalPath(cfgFile.getFsMirrorPath());
 
         qCInfo(lcWizard) << "Adding folder definition for" << localFolder << _remoteFolder;
         FolderDefinition folderDefinition;

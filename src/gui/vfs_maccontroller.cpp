@@ -48,7 +48,6 @@ void VfsMacController::mountFailed(QVariantMap userInfo)
 
 void VfsMacController::didMount(QVariantMap userInfo)
 {
-    Q_UNUSED(userInfo);
     qDebug() << "Got didMount notification.";
     QString mountPath = userInfo.value(kGMUserFileSystemMountPathKey).toString();
 }
@@ -71,9 +70,18 @@ void VfsMacController::mount()
 
 void VfsMacController::unmount()
 {
-    if(fs_)
+    if(fs_) {
         fs_->closeExternally = false;
         fs_->unmount();
+    }
+}
+
+void VfsMacController::cleanCacheFolder()
+{
+    QDir mirror_path(rootPath);
+    
+    sleep(1000);
+    mirror_path.removeRecursively();
 }
 
 void VfsMacController::slotquotaUpdated(qint64 total, qint64 used)
@@ -84,8 +92,13 @@ void VfsMacController::slotquotaUpdated(qint64 total, qint64 used)
 
 void VfsMacController::initialize(QString rootPath, QString mountPath, OCC::AccountState *accountState)
 {
-    fs_ = new VfsMac(rootPath, false, accountState, this);
+    this->rootPath = rootPath;
     this->mountPath = mountPath;
+    
+    fs_ = new VfsMac(rootPath, false, accountState, this);
+    
+    cfgFile.setFsMirrorPath();
+    cfgFile.setFsSyncPath(mountPath);
     
     QFileInfo root(rootPath);
     if(root.exists() && !root.isDir()) {
@@ -117,25 +130,26 @@ void VfsMacController::initialize(QString rootPath, QString mountPath, OCC::Acco
     options.append("native_xattr");
     options.append("kill_on_unmount");
     options.append("local");
-    options.append("volname=" + QApplication::applicationName() + "FS");
+    options.append("volname=" + QApplication::applicationName() + " FS");
 }
 
-VfsMacController::VfsMacController() {
-
+VfsMacController::VfsMacController()
+{
+    
 }
 
 VfsMacController::~VfsMacController()
 {
-    if(qi_)
-    {
+    if(qi_) {
         disconnect(qi_, &OCC::QuotaInfo::quotaUpdated, this, &VfsMacController::slotquotaUpdated);
         delete(qi_);
     }
     
-    if(fs_)
-    {
+    if(fs_) {
         disconnect(fs_, &VfsMac::FuseFileSystemDidMount, this, &VfsMacController::didMount);
         disconnect(fs_, &VfsMac::FuseFileSystemMountFailed, this, &VfsMacController::mountFailed);
         disconnect(fs_, &VfsMac::FuseFileSystemDidUnmount, this, &VfsMacController::didUnmount);
     }
+    
+    _instance = 0;
 }
