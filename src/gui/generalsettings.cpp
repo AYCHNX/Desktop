@@ -174,19 +174,32 @@ void GeneralSettings::slotToggleOptionalServerNotifications(bool enable)
     ConfigFile cfgFile;
     cfgFile.setOptionalServerNotifications(enable);
 
-#if defined(Q_OS_MAC)
-    cfgFile.setFsSyncPath(QString("/Volumes/" + Theme::instance()->appName() + "fs"));
-    cfgFile.setFsMirrorPath();
-#endif
+    #if defined(Q_OS_MAC)
+        QString defaultFileStreamSyncPath = cfgFile.defaultFileStreamSyncPath();
+        QString defaultFileStreamMirrorPath = cfgFile.defaultFileStreamMirrorPath();
+
+        if (defaultFileStreamSyncPath.isEmpty() || defaultFileStreamSyncPath.compare(QString("")) == 0)
+            cfgFile.setDefaultFileStreamSyncPath(QString("/Volumes/" + Theme::instance()->appName() + "fs"));
+
+        if (defaultFileStreamMirrorPath.isEmpty() || defaultFileStreamMirrorPath.compare(QString("")) == 0)
+            cfgFile.setDefaultFileStreamMirrorPath(QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/.cachedFiles");
+    #endif
 
 #ifdef Q_OS_WIN
     //< Set configuration paths.
-	QString fsSyncPath = cfgFile.getFsSyncPath();
 
-	if (fsSyncPath.isEmpty() || fsSyncPath.compare(QString("")) == 0)
-		cfgFile.setFsSyncPath(QString("X:/"));
+    QString m_defaultFileStreamSyncPath = cfgFile.defaultFileStreamSyncPath();
+    QString m_defaultFileStreamMirrorPath = cfgFile.defaultFileStreamMirrorPath();
+    QString m_defaultFileStreamLetterDrive = cfgFile.defaultFileStreamLetterDrive();
 
-    cfgFile.setFsMirrorPath();
+    if (m_defaultFileStreamSyncPath.isEmpty() || m_defaultFileStreamSyncPath.compare(QString("")) == 0)
+        cfgFile.setDefaultFileStreamSyncPath(QString("X:/Mi unidad"));
+
+    if (m_defaultFileStreamMirrorPath.isEmpty() || m_defaultFileStreamMirrorPath.compare(QString("")) == 0)
+        cfgFile.setDefaultFileStreamMirrorPath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cachedFiles");
+
+    if (m_defaultFileStreamLetterDrive.isEmpty() || m_defaultFileStreamLetterDrive.compare(QString("")) == 0)
+        cfgFile.setDefaultFileStreamLetterDrive(QString("x"));
 #endif
 }
 
