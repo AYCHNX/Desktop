@@ -97,8 +97,8 @@ void VfsMacController::initialize(QString rootPath, QString mountPath, OCC::Acco
     
     fs_ = new VfsMac(rootPath, false, accountState, this);
     
-    cfgFile.setFsMirrorPath();
-    cfgFile.setFsSyncPath(mountPath);
+    cfgFile.setDefaultFileStreamMirrorPath(rootPath);
+    cfgFile.setDefaultFileStreamSyncPath(mountPath);
     
     QFileInfo root(rootPath);
     if(root.exists() && !root.isDir()) {

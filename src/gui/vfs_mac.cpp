@@ -59,7 +59,7 @@ private:
     bool supportsExtendedTimes_;      // Delegate supports create and backup times?
     bool supportsSetVolumeName_;      // Delegate supports setvolname?
     bool isReadOnly_;                 // Is this mounted read-only?
-    
+
 public:
     explicit InternalVfsMac(QObject *parent = 0, bool isThreadSafe=false)
         : QObject(parent)
@@ -74,27 +74,27 @@ public:
         isReadOnly_ = false;
         shouldCheckForResource_=false;
     }
-    
+
     struct fuse* handle () {
         return handle_;
     }
-    
+
     void setHandle (struct fuse *handle) {
         handle_ = handle;
     }
-    
+
     void setMountPath (QString mountPath) {
         mountPath_ = mountPath;
     }
-    
+
     QString mountPath () {
         return mountPath_;
     }
-    
+
     void setRootPath(QString rootPath) {
         rootPath_ = rootPath;
     }
-    
+
     QString rootPath() {
         return "-omodules=threadid:subdir,subdir="+ rootPath_;
     }
@@ -140,7 +140,7 @@ VfsMac::VfsMac(QString rootPath, bool isThreadSafe, OCC::AccountState *accountSt
     connect(this, &VfsMac::addToFileTree, _syncWrapper, &OCC::SyncWrapper::updateFileTree, Qt::QueuedConnection);
     connect(_syncWrapper, &OCC::SyncWrapper::syncFinish, this, &VfsMac::slotSyncFinish, Qt::QueuedConnection);
 
-	connect(this, &VfsMac::createItem, _syncWrapper, &OCC::SyncWrapper::createItemAtPath, Qt::QueuedConnection);
+    connect(this, &VfsMac::createItem, _syncWrapper, &OCC::SyncWrapper::createItemAtPath, Qt::QueuedConnection);
     connect(this, &VfsMac::openFile, _syncWrapper, &OCC::SyncWrapper::openFileAtPath, Qt::QueuedConnection);
     connect(this, &VfsMac::releaseFile, _syncWrapper, &OCC::SyncWrapper::releaseFileAtPath, Qt::QueuedConnection);
     connect(this, &VfsMac::deleteItem, _syncWrapper, &OCC::SyncWrapper::deleteItemAtPath, Qt::QueuedConnection);
@@ -231,11 +231,11 @@ void VfsMac::unmount()
 bool VfsMac::invalidateItemAtPath(QString path, QVariantMap &error)
 {
     int ret = -ENOTCONN;
-    
+
     struct fuse* handle = internal_->handle();
     if (handle) {
         ret = fuse_invalidate(handle, path.toLatin1().data());
-        
+
         // Note: fuse_invalidate_path() may return -ENOENT to indicate that there
         // was no entry to be invalidated, e.g., because the path has not been seen
         // before or has been forgotten. This should not be considered to be an
@@ -244,7 +244,7 @@ bool VfsMac::invalidateItemAtPath(QString path, QVariantMap &error)
             ret = 0;
         }
     }
-    
+
     if (ret != 0)
     {
         error = VfsMac::errorWithCode(ret);
@@ -283,11 +283,11 @@ void VfsMac::waitUntilMounted (int fileDescriptor)
                         &handShakeComplete);
         if (ret == 0 && handShakeComplete) {
             internal_->setStatus(GMUserFileSystem_MOUNTED);
-            
+
             // Successfully mounted, so post notification.
             QVariantMap userInfo;
             userInfo.insert(kGMUserFileSystemMountPathKey, internal_->mountPath());
-            
+
             emit FuseFileSystemDidMount(userInfo);
             return;
         }
@@ -298,31 +298,31 @@ void VfsMac::waitUntilMounted (int fileDescriptor)
 void VfsMac::fuseInit()
 {
     struct fuse_context* context = fuse_get_context();
-    
+
     internal_->setHandle(context->fuse);
     internal_->setStatus(GMUserFileSystem_INITIALIZING);
     QVariantMap error;
     QVariantMap attribs = this->attributesOfFileSystemForPath("/", error);
-    
+
     if (!attribs.isEmpty()) {
         int supports = 0;
-        
+
         supports = attribs.value(kGMUserFileSystemVolumeSupportsAllocateKey).toInt();
         internal_->setSupportsAllocate(supports);
-        
+
         supports = attribs.value(kGMUserFileSystemVolumeSupportsCaseSensitiveNamesKey).toInt();
         internal_->setSupportsCaseSensitiveNames(supports);
-        
+
         supports = attribs.value(kGMUserFileSystemVolumeSupportsExchangeDataKey).toInt();
         internal_->setSupportsExchangeData(supports);
-        
+
         supports = attribs.value(kGMUserFileSystemVolumeSupportsExtendedDatesKey).toInt();
         internal_->setSupportsExtendedTimes(supports);
-        
+
         supports = attribs.value(kGMUserFileSystemVolumeSupportsSetVolumeNameKey).toInt();
         internal_->setSupportsSetVolumeName(supports);
     }
-    
+
     // The mount point won't actually show up until this winds its way
     // back through the kernel after this routine returns. In order to post
     // the kGMUserFileSystemDidMount notification we start a new thread that will
@@ -330,7 +330,7 @@ void VfsMac::fuseInit()
     struct fuse_session* se = fuse_get_session(context->fuse);
     struct fuse_chan* chan = fuse_session_next_chan(se, NULL);
     int fd = fuse_chan_fd(chan);
-    
+
     std::thread t(&VfsMac::waitUntilMounted, this, fd);
     t.detach();
 }
@@ -338,10 +338,10 @@ void VfsMac::fuseInit()
 void VfsMac::fuseDestroy()
 {
     internal_->setStatus(GMUserFileSystem_UNMOUNTING);
-    
+
     QVariantMap userInfo;
     userInfo.insert(kGMUserFileSystemMountPathKey, internal_->mountPath());
-    
+
     emit FuseFileSystemDidUnmount(userInfo);
 }
 
@@ -353,32 +353,32 @@ bool VfsMac::fillStatfsBuffer(struct statfs *stbuf, QString path, QVariantMap &e
     if (attributes.isEmpty()) {
         return false;
     }
-    
+
     // Block size
     Q_ASSERT(attributes.contains(kGMUserFileSystemVolumeFileSystemBlockSizeKey));
     stbuf->f_bsize = (uint32_t)attributes.value(kGMUserFileSystemVolumeFileSystemBlockSizeKey).toUInt();
     stbuf->f_iosize = (int32_t)attributes.value(kGMUserFileSystemVolumeFileSystemBlockSizeKey).toInt();
-    
+
     // Size in blocks
     Q_ASSERT(attributes.contains(FileManager::FMFileSystemSize));
     unsigned long long size = attributes.value(FileManager::FMFileSystemSize).toULongLong();
     stbuf->f_blocks = (uint64_t)(size / stbuf->f_bsize);
-    
+
     // Number of free / available blocks
     Q_ASSERT(attributes.contains(FileManager::FMFileSystemFreeSize));
     unsigned long long freeSize = attributes.value(FileManager::FMFileSystemFreeSize).toULongLong();
     stbuf->f_bavail = stbuf->f_bfree = (uint64_t)(freeSize / stbuf->f_bsize);
-    
+
     // Number of nodes
     Q_ASSERT(attributes.contains(FileManager::FMFileSystemNodes));
     unsigned long long numNodes = attributes.value(FileManager::FMFileSystemNodes).toULongLong();
     stbuf->f_files = (uint64_t)numNodes;
-    
+
     // Number of free / available nodes
     Q_ASSERT(attributes.contains(FileManager::FMFileSystemFreeNodes));
     unsigned long long freeNodes = attributes.value(FileManager::FMFileSystemFreeNodes).toULongLong();
     stbuf->f_ffree = (uint64_t)freeNodes;
-    
+
     return true;
 }
 
@@ -388,14 +388,14 @@ bool VfsMac::fillStatBuffer(struct stat *stbuf, QString path, QVariant userData,
     if (attributes.empty()) {
         return false;
     }
-    
+
     // Inode
     if(attributes.contains(FileManager::FMFileSystemFileNumber))
     {
         long long inode = attributes.value(FileManager::FMFileSystemFileNumber).toLongLong();
         stbuf->st_ino = inode;
     }
-    
+
     // Permissions (mode)
     long perm = (long)attributes.value(FileManager::FMFilePosixPermissions).toLongLong();
     stbuf->st_mode = perm;
@@ -410,17 +410,17 @@ bool VfsMac::fillStatBuffer(struct stat *stbuf, QString path, QVariant userData,
         error = errorWithCode(EFTYPE);
         return false;
     }
-    
+
     // Owner and Group
     // Note that if the owner or group IDs are not specified, the effective
     // user and group IDs for the current process are used as defaults.
     stbuf->st_uid = attributes.contains(FileManager::FMFileOwnerAccountID) ? attributes.value(FileManager::FMFileOwnerAccountID).toLongLong() : geteuid();
     stbuf->st_gid = attributes.contains(FileManager::FMFileGroupOwnerAccountID) ? attributes.value(FileManager::FMFileGroupOwnerAccountID).toLongLong() : getegid();
-    
+
     // nlink
     long nlink = attributes.value(FileManager::FMFileReferenceCount).toLongLong();
     stbuf->st_nlink = nlink;
-    
+
     // flags
     if (attributes.contains(kGMUserFileSystemFileFlagsKey)) {
         long flags = attributes.value(kGMUserFileSystemFileFlagsKey).toLongLong();
@@ -432,7 +432,7 @@ bool VfsMac::fillStatBuffer(struct stat *stbuf, QString path, QVariant userData,
             bool immutableFlag = attributes.value(FileManager::FMFileImmutable).toBool();
             if (immutableFlag)
                 stbuf->st_flags |= UF_IMMUTABLE;
-                
+
         }
         if (attributes.contains(FileManager::FMFileAppendOnly))
         {
@@ -441,7 +441,7 @@ bool VfsMac::fillStatBuffer(struct stat *stbuf, QString path, QVariant userData,
                 stbuf->st_flags |= UF_APPEND;
         }
     }
-    
+
     // Note: We default atime, ctime to mtime if it is provided.
     if(attributes.contains(FileManager::FMFileModificationDate))
     {
@@ -451,7 +451,7 @@ bool VfsMac::fillStatBuffer(struct stat *stbuf, QString path, QVariant userData,
             const time_t t_sec = (time_t) seconds_dp;
             const double nanoseconds_dp = ((seconds_dp - t_sec) * kNanoSecondsPerSecond);
             const long t_nsec = (nanoseconds_dp > 0 ) ? nanoseconds_dp : 0;
-            
+
             stbuf->st_mtimespec.tv_sec = t_sec;
             stbuf->st_mtimespec.tv_nsec = t_nsec;
             stbuf->st_atimespec = stbuf->st_mtimespec;  // Default to mtime
@@ -482,7 +482,7 @@ bool VfsMac::fillStatBuffer(struct stat *stbuf, QString path, QVariant userData,
             stbuf->st_ctimespec.tv_nsec = t_nsec;
         }
     }
-    
+
 #ifdef _DARWIN_USE_64_BIT_INODE
     if(attributes.contains(FileManager::FMFileCreationDate))
     {
@@ -497,7 +497,7 @@ bool VfsMac::fillStatBuffer(struct stat *stbuf, QString path, QVariant userData,
         }
     }
 #endif
-    
+
     // File size
     // Note that the actual file size of a directory depends on the internal
     // representation of directories in the particular file system. In general
@@ -507,7 +507,7 @@ bool VfsMac::fillStatBuffer(struct stat *stbuf, QString path, QVariant userData,
         long long size = attributes.value(FileManager::FMFileSize).toLongLong();
         stbuf->st_size = size;
     }
-    
+
     // Set the number of blocks used so that Finder will display size on disk
     // properly. The man page says that this is in terms of 512 byte blocks.
     if (attributes.contains(kGMUserFileSystemFileSizeInBlocksKey))
@@ -521,14 +521,14 @@ bool VfsMac::fillStatBuffer(struct stat *stbuf, QString path, QVariant userData,
         if (stbuf->st_size % 512)
             ++(stbuf->st_blocks);
     }
-    
+
     // Optimal file I/O size
     if (attributes.contains(kGMUserFileSystemFileOptimalIOSizeKey))
     {
         int ioSize = attributes.value(kGMUserFileSystemFileOptimalIOSizeKey).toInt();
         stbuf->st_blksize = ioSize;
     }
-    
+
     return true;
 }
 
@@ -558,7 +558,7 @@ void VfsMac::removeDirectoryAtPath(QString absolutePath, QVariantMap &error)
 void VfsMac::removeItemAtPath(QString absolutePath, QVariantMap &error)
 {
     Q_UNUSED(error);
-	emit deleteItem(absolutePath);
+    emit deleteItem(absolutePath);
 }
 
 #pragma mark Moving an Item
@@ -566,7 +566,7 @@ void VfsMac::removeItemAtPath(QString absolutePath, QVariantMap &error)
 void VfsMac::moveItemAtPath(QString absolutePath1, QString absolutePath2, QVariantMap &error)
 {
     Q_UNUSED(error);
-	emit move(absolutePath1, absolutePath2);
+    emit move(absolutePath1, absolutePath2);
 }
 
 #pragma mark Linking an Item
@@ -616,20 +616,20 @@ void VfsMac::folderFileListFinish(OCC::DiscoveryDirectoryResult *dr)
 void *VfsMac::contentsOfDirectoryAtPath(QString absolutePath, QVariantMap &error)
 {
     QString relativePath = absolutePath;
-    relativePath.replace(cfgFile.getFsMirrorPath(), "");
-        
+    relativePath.replace(cfgFile.defaultFileStreamMirrorPath(), "");
+
     _mutex.lock();
     emit startRemoteFileListJob(relativePath);
     _dirCondition.wait(&_mutex);
     _mutex.unlock();
 
     qDebug() << Q_FUNC_INFO << "DONE looking for " << relativePath << "in: " << _fileListMap.keys();
-    
+
     if(_fileListMap.value(relativePath)->code != 0) {
         errorWithPosixCode(_fileListMap.value(relativePath)->code);
         return nullptr;
     }
-    
+
     FileManager fm;
     if(!_fileListMap.value(relativePath)->list.empty()) {
         for(unsigned long i=0; i <_fileListMap.value(relativePath)->list.size(); i++) {
@@ -650,9 +650,10 @@ void *VfsMac::contentsOfDirectoryAtPath(QString absolutePath, QVariantMap &error
                     close(fd.toInt());
                 }
             }
-            
+
             emit addToFileTree(_fileListMap.value(relativePath)->list.at(i)->type, completePath);
             // update file tree here?
+            OCC::SyncWrapper::instance()->setFileRecord(_fileListMap.value(relativePath)->list.at(i).get(), rootPath_ + (relativePath.endsWith("/") ? relativePath:(relativePath + "/")));
         }
     }
     _fileListMap.remove(relativePath);
@@ -670,17 +671,17 @@ char * VfsMac::getProcessName(pid_t pid)
 {
     char pathBuffer [PROC_PIDPATHINFO_MAXSIZE];
     proc_pidpath(pid, pathBuffer, sizeof(pathBuffer));
-    
+
     char nameBuffer[256];
-    
+
     int position = strlen(pathBuffer);
     while(position >= 0 && pathBuffer[position] != '/')
     {
         position--;
     }
-    
+
     strcpy(nameBuffer, pathBuffer + position + 1);
-    
+
     return nameBuffer;
 }
 
@@ -746,7 +747,7 @@ void VfsMac::exchangeDataOfItemAtPath(QString absolutePath1, QString absolutePat
 QVariantMap VfsMac::attributesOfFileSystemForPath(QString path, QVariantMap &error)
 {
     QVariantMap attributes;
-    
+
     unsigned long long defaultSize =(2LL * 1024 * 1024 * 1024);
     attributes.insert(FileManager::FMFileSystemSize, defaultSize);
     attributes.insert(FileManager::FMFileSystemFreeSize, defaultSize);
@@ -754,12 +755,12 @@ QVariantMap VfsMac::attributesOfFileSystemForPath(QString path, QVariantMap &err
     attributes.insert(FileManager::FMFileSystemFreeNodes, defaultSize);
     attributes.insert(kGMUserFileSystemVolumeMaxFilenameLengthKey, (int)255);
     attributes.insert(kGMUserFileSystemVolumeFileSystemBlockSizeKey, (int)4096);
-    
+
     bool supports = true;
-    
+
     attributes.insert(kGMUserFileSystemVolumeSupportsExchangeDataKey, supports);
     attributes.insert(kGMUserFileSystemVolumeSupportsAllocateKey, supports);
-    
+
     FileManager fm;
     QVariantMap customAttribs = fm.attributesOfFileSystemForPath(rootPath_ + path, error);
     //qDebug() << "Path: " << rootPath_ + path;
@@ -770,16 +771,16 @@ QVariantMap VfsMac::attributesOfFileSystemForPath(QString path, QVariantMap &err
         attributes.clear();
         return attributes;
     }
-    
+
     for(auto attrib : customAttribs.keys())
     {
         //qDebug() << "Key: " <<attrib << "Value: " << customAttribs.value(attrib) << "\n";
         attributes.insert(attrib, customAttribs.value(attrib));
     }
-    
+
     attributes.insert(FileManager::FMFileSystemSize, totalQuota());
     attributes.insert(FileManager::FMFileSystemFreeSize, totalQuota() - usedQuota());
-    
+
     return attributes;
 }
 
@@ -787,9 +788,9 @@ bool VfsMac::setAttributes(QVariantMap attributes, QString path, QVariant userIn
 {
     Q_UNUSED(userInfo);
     QString p = rootPath_ + path;
-    
+
     // TODO: Handle other keys not handled by NSFileManager setAttributes call.
-    
+
     long long offset = attributes.value(FileManager::FMFileSize).toLongLong();
     if ( attributes.contains(FileManager::FMFileSize) )
     {
@@ -826,17 +827,17 @@ QVariantMap VfsMac::defaultAttributesOfItemAtPath(QString path, QVariant userDat
         attributes.insert(FileManager::FMFileType, FileManager::FMFileTypeDirectory);
     else
         attributes.insert(FileManager::FMFileType, FileManager::FMFileTypeRegular);
-    
+
     QString p = rootPath_ + path;
     FileManager fm;
     QVariantMap *customAttribs = fm.attributesOfItemAtPath(p, error);
 //    [[NSFileManager defaultManager] attributesOfItemAtPath:p error:error];
-    
+
     // Maybe this is the root directory?  If so, we'll claim it always exists.
     if ((!customAttribs || customAttribs->empty()) && path=="/") {
         return attributes;  // The root directory always exists.
     }
-    
+
     if (customAttribs && !customAttribs->empty())
     {
         for(auto attrib : customAttribs->keys())
@@ -846,7 +847,7 @@ QVariantMap VfsMac::defaultAttributesOfItemAtPath(QString path, QVariant userDat
             }*/
             attributes.insert(attrib, customAttribs->value(attrib));// addEntriesFromDictionary:customAttribs];
         }
-        
+
     }
     else
     {
@@ -854,7 +855,7 @@ QVariantMap VfsMac::defaultAttributesOfItemAtPath(QString path, QVariant userDat
             error = errorWithCode(ENOENT);
         return QVariantMap();
     }
-    
+
     // If they don't supply a size and it is a file then we try to compute it.
     // qDebug() << attributes << "Si llego al final\n";
     return attributes;
@@ -873,7 +874,7 @@ QStringList* VfsMac::extendedAttributesOfItemAtPath(QString path, QVariantMap &e
 {
     QString p = rootPath_ + path;
     QStringList *retval = nullptr;
-    
+
     ssize_t size = listxattr(p.toLatin1().data(), nullptr, 0, XATTR_NOFOLLOW);
     if ( size < 0 ) {
         error = errorWithPosixCode(errno);
@@ -900,7 +901,7 @@ QByteArray* VfsMac::valueOfExtendedAttribute(QString name, QString path, off_t p
 {
     QByteArray *data=nullptr;
     QString p = rootPath_ + path;
-    
+
     ssize_t size = getxattr(p.toLatin1().data(), name.toLatin1().data(), nullptr, 0,
                             position, XATTR_NOFOLLOW);
     if ( size < 0 ) {
@@ -910,7 +911,7 @@ QByteArray* VfsMac::valueOfExtendedAttribute(QString name, QString path, off_t p
     char* cdata = new char[size];
     size = getxattr(p.toLatin1().data(), name.toLatin1().data(), cdata, size,
                     position, XATTR_NOFOLLOW);
-    
+
     if ( size < 0 )
     {
         error = errorWithPosixCode(errno);
@@ -960,16 +961,16 @@ static void* fusefm_init(struct fuse_conn_info* conn)
         VfsMac::instance()->fuseInit();
     }
     catch (QException exception) { }
-    
+
     SET_CAPABILITY(conn, FUSE_CAP_ALLOCATE, VfsMac::instance()->enableAllocate());
     SET_CAPABILITY(conn, FUSE_CAP_XTIMES, VfsMac::instance()->enableExtendedTimes());
     SET_CAPABILITY(conn, FUSE_CAP_VOL_RENAME, VfsMac::instance()->enableSetVolumeName());
     SET_CAPABILITY(conn, FUSE_CAP_CASE_INSENSITIVE, !VfsMac::instance()->enableCaseSensitiveNames());
     SET_CAPABILITY(conn, FUSE_CAP_EXCHANGE_DATA, VfsMac::instance()->enableExchangeData());
-    
+
     FUSE_ENABLE_SETVOLNAME(conn);
     FUSE_ENABLE_XTIMES(conn);
-    
+
     return VfsMac::instance();
 }
 
@@ -987,14 +988,14 @@ static int fusefm_mkdir(const char* path, mode_t mode)
 {
     QVariantMap error;
     VfsMac::instance()->createDirectoryAtPath(QString::fromLatin1(path), error);
-    
+
     int res;
-    
+
     res = mkdir(path, mode);
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1002,15 +1003,15 @@ static int fusefm_create(const char* path, mode_t mode, struct fuse_file_info* f
 {
     QVariantMap error;
     VfsMac::instance()->createFileAtPath(QString::fromLatin1(path), error);
-    
+
     int fd;
-    
+
     fd = open(path, fi->flags, mode);
     if (fd == -1) {
         return -errno;
     }
     fi->fh = fd;
-    
+
     return 0;
 }
 
@@ -1018,14 +1019,14 @@ static int fusefm_rmdir(const char* path)
 {
     QVariantMap error;
     VfsMac::instance()->removeDirectoryAtPath(QString::fromLatin1(path), error);
-    
+
     int res;
-    
+
     res = rmdir(path);
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1033,14 +1034,14 @@ static int fusefm_unlink(const char* path)
 {
     QVariantMap error;
     VfsMac::instance()->removeItemAtPath(QString::fromLatin1(path), error);
-    
+
     int res;
-    
+
     res = unlink(path);
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1048,14 +1049,14 @@ static int fusefm_rename(const char* from, const char* to)
 {
     QVariantMap error;
     VfsMac::instance()->moveItemAtPath(QString::fromLatin1(from), QString::fromLatin1(to), error);
-    
+
     int res;
-    
+
     res = rename(from, to);
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1063,14 +1064,14 @@ static int fusefm_link(const char* from, const char* to)
 {
     QVariantMap error;
     VfsMac::instance()->linkItemAtPath(QString::fromLatin1(from), QString::fromLatin1(to), error);
-    
+
     int res;
-    
+
     res = link(from, to);
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1078,14 +1079,14 @@ static int fusefm_symlink(const char* from, const char* to)
 {
     QVariantMap error;
     VfsMac::instance()->createSymbolicLinkAtPath(QString::fromLatin1(from), QString::fromLatin1(to), error);
-    
+
     int res;
-    
+
     res = symlink(from, to);
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1093,17 +1094,17 @@ static int fusefm_readlink(const char *path, char *buf, size_t size)
 {
     QVariantMap error;
     VfsMac::instance()->destinationOfSymbolicLinkAtPath(QString::fromLatin1(path), error);
-    
+
     int res;
-    
+
     res = readlink(path, buf, size - 1);
-    
+
     if (res == -1) {
         return -errno;
     }
-    
+
     buf[res] = '\0';
-    
+
     return 0;
 }
 
@@ -1111,14 +1112,14 @@ static int fusefm_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
 {
     DIR *dp;
     struct dirent *de;
-    
+
     (void) offset;
     (void) fi;
-    
+
     dp = opendir(path);
     if (dp == NULL)
         return -errno;
-    
+
     while ((de = readdir(dp)) != NULL) {
         struct stat st;
         memset(&st, 0, sizeof(st));
@@ -1127,9 +1128,9 @@ static int fusefm_readdir(const char *path, void *buf, fuse_fill_dir_t filler, o
         if (filler(buf, de->d_name, &st, 0))
             break;
     }
-    
+
     closedir(dp);
-    
+
     return 0;
 }
 
@@ -1137,17 +1138,17 @@ static int fusefm_open(const char *path, struct fuse_file_info *fi)
 {
     QVariantMap error;
     VfsMac::instance()->openFileAtPath(QString::fromLatin1(path), error);
-    
+
     int ret = 0;  // TODO: Default to 0 (success) since a file-system does
     // not necessarily need to implement open?
-    
+
     int fd = open(path, fi->flags);
     if (fd == -1) {
         return -errno;
     }
-    
+
     fi->fh = fd;
-    
+
     return ret;
 }
 
@@ -1155,11 +1156,11 @@ static int fusefm_release(const char *path, struct fuse_file_info *fi)
 {
     QVariantMap error;
     VfsMac::instance()->releaseFileAtPath(QString::fromLatin1(path), error);
-    
+
     (void)path;
-    
+
     close(fi->fh);
-    
+
     return 0;
 }
 
@@ -1167,15 +1168,15 @@ static int fusefm_read(const char *path, char *buf, size_t size, off_t offset, s
 {
     QVariantMap error;
     VfsMac::instance()->readFileAtPath(QString::fromLatin1(path), error);
-    
+
     int res;
-    
+
     (void)path;
     res = pread(fi->fh, buf, size, offset);
     if (res == -1) {
         res = -errno;
     }
-    
+
     return res;
 }
 
@@ -1183,32 +1184,32 @@ static int fusefm_write(const char* path, const char* buf, size_t size, off_t of
 {
     QVariantMap error;
     VfsMac::instance()->writeFileAtPath(QString::fromLatin1(path), error);
-    
+
     int res;
-    
+
     (void)path;
-    
+
     res = pwrite(fi->fh, buf, size, offset);
     if (res == -1) {
         res = -errno;
     }
-    
+
     return res;
 }
 
 static int fusefm_fsync(const char* path, int isdatasync, struct fuse_file_info* fi)
 {
     int res;
-    
+
     (void)path;
-    
+
     (void)isdatasync;
-    
+
     res = fsync(fi->fh);
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1216,13 +1217,13 @@ static int fusefm_fallocate(const char* path, int mode, off_t offset, off_t leng
 {
     QVariantMap error;
     VfsMac::instance()->preallocateFileAtPath(QString::fromLatin1(path), error);
-    
+
     fstore_t fstore;
-    
+
     if (!(mode & PREALLOCATE)) {
         return -ENOTSUP;
     }
-    
+
     fstore.fst_flags = 0;
     if (mode & ALLOCATECONTIG) {
         fstore.fst_flags |= F_ALLOCATECONTIG;
@@ -1230,16 +1231,16 @@ static int fusefm_fallocate(const char* path, int mode, off_t offset, off_t leng
     if (mode & ALLOCATEALL) {
         fstore.fst_flags |= F_ALLOCATEALL;
     }
-    
+
     if (mode & ALLOCATEFROMPEOF) {
         fstore.fst_posmode = F_PEOFPOSMODE;
     } else if (mode & ALLOCATEFROMVOL) {
         fstore.fst_posmode = F_VOLPOSMODE;
     }
-    
+
     fstore.fst_offset = offset;
     fstore.fst_length = length;
-    
+
     if (fcntl(fi->fh, F_PREALLOCATE, &fstore) == -1) {
         return -errno;
     } else {
@@ -1251,14 +1252,14 @@ static int fusefm_exchange(const char* path1, const char* path2, unsigned long o
 {
     QVariantMap error;
     VfsMac::instance()->exchangeDataOfItemAtPath(path1, path2, error);
-    
+
     int res;
-    
+
     res = exchangedata(path1, path2, opts);
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1292,36 +1293,36 @@ static int fusefm_fsetattr_x(const char *path, struct setattr_x *attr, struct fu
     int res;
     uid_t uid = -1;
     gid_t gid = -1;
-    
+
     if (SETATTR_WANTS_MODE(attr)) {
         res = fchmod(fi->fh, attr->mode);
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_UID(attr)) {
         uid = attr->uid;
     }
-    
+
     if (SETATTR_WANTS_GID(attr)) {
         gid = attr->gid;
     }
-    
+
     if ((uid != -1) || (gid != -1)) {
         res = fchown(fi->fh, uid, gid);
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_SIZE(attr)) {
         res = ftruncate(fi->fh, attr->size);
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_MODTIME(attr)) {
         struct timeval tv[2];
         if (!SETATTR_WANTS_ACCTIME(attr)) {
@@ -1337,10 +1338,10 @@ static int fusefm_fsetattr_x(const char *path, struct setattr_x *attr, struct fu
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_CRTIME(attr)) {
         struct attrlist attributes;
-        
+
         attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
         attributes.reserved = 0;
         attributes.commonattr = ATTR_CMN_CRTIME;
@@ -1348,18 +1349,18 @@ static int fusefm_fsetattr_x(const char *path, struct setattr_x *attr, struct fu
         attributes.fileattr = 0;
         attributes.forkattr = 0;
         attributes.volattr = 0;
-        
+
         res = fsetattrlist(fi->fh, &attributes, &attr->crtime,
                            sizeof(struct timespec), FSOPT_NOFOLLOW);
-        
+
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_CHGTIME(attr)) {
         struct attrlist attributes;
-        
+
         attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
         attributes.reserved = 0;
         attributes.commonattr = ATTR_CMN_CHGTIME;
@@ -1367,17 +1368,17 @@ static int fusefm_fsetattr_x(const char *path, struct setattr_x *attr, struct fu
         attributes.fileattr = 0;
         attributes.forkattr = 0;
         attributes.volattr = 0;
-        
+
         res = fsetattrlist(fi->fh, &attributes, &attr->chgtime, sizeof(struct timespec), FSOPT_NOFOLLOW);
-        
+
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_BKUPTIME(attr)) {
         struct attrlist attributes;
-        
+
         attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
         attributes.reserved = 0;
         attributes.commonattr = ATTR_CMN_BKUPTIME;
@@ -1385,21 +1386,21 @@ static int fusefm_fsetattr_x(const char *path, struct setattr_x *attr, struct fu
         attributes.fileattr = 0;
         attributes.forkattr = 0;
         attributes.volattr = 0;
-        
+
         res = fsetattrlist(fi->fh, &attributes, &attr->bkuptime, sizeof(struct timespec), FSOPT_NOFOLLOW);
-        
+
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_FLAGS(attr)) {
         res = fchflags(fi->fh, attr->flags);
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     return 0;
 }
 
@@ -1408,36 +1409,36 @@ static int fusefm_setattr_x(const char *path, struct setattr_x *attr)
     int res;
     uid_t uid = -1;
     gid_t gid = -1;
-    
+
     if (SETATTR_WANTS_MODE(attr)) {
         res = lchmod(path, attr->mode);
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_UID(attr)) {
         uid = attr->uid;
     }
-    
+
     if (SETATTR_WANTS_GID(attr)) {
         gid = attr->gid;
     }
-    
+
     if ((uid != -1) || (gid != -1)) {
         res = lchown(path, uid, gid);
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_SIZE(attr)) {
         res = truncate(path, attr->size);
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_MODTIME(attr)) {
         struct timeval tv[2];
         if (!SETATTR_WANTS_ACCTIME(attr)) {
@@ -1453,10 +1454,10 @@ static int fusefm_setattr_x(const char *path, struct setattr_x *attr)
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_CRTIME(attr)) {
         struct attrlist attributes;
-        
+
         attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
         attributes.reserved = 0;
         attributes.commonattr = ATTR_CMN_CRTIME;
@@ -1464,18 +1465,18 @@ static int fusefm_setattr_x(const char *path, struct setattr_x *attr)
         attributes.fileattr = 0;
         attributes.forkattr = 0;
         attributes.volattr = 0;
-        
+
         res = setattrlist(path, &attributes, &attr->crtime,
                           sizeof(struct timespec), FSOPT_NOFOLLOW);
-        
+
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_CHGTIME(attr)) {
         struct attrlist attributes;
-        
+
         attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
         attributes.reserved = 0;
         attributes.commonattr = ATTR_CMN_CHGTIME;
@@ -1483,17 +1484,17 @@ static int fusefm_setattr_x(const char *path, struct setattr_x *attr)
         attributes.fileattr = 0;
         attributes.forkattr = 0;
         attributes.volattr = 0;
-        
+
         res = setattrlist(path, &attributes, &attr->chgtime, sizeof(struct timespec), FSOPT_NOFOLLOW);
-        
+
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_BKUPTIME(attr)) {
         struct attrlist attributes;
-        
+
         attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
         attributes.reserved = 0;
         attributes.commonattr = ATTR_CMN_BKUPTIME;
@@ -1501,22 +1502,22 @@ static int fusefm_setattr_x(const char *path, struct setattr_x *attr)
         attributes.fileattr = 0;
         attributes.forkattr = 0;
         attributes.volattr = 0;
-        
+
         res = setattrlist(path, &attributes, &attr->bkuptime,
                           sizeof(struct timespec), FSOPT_NOFOLLOW);
-        
+
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     if (SETATTR_WANTS_FLAGS(attr)) {
         res = lchflags(path, attr->flags);
         if (res == -1) {
             return -errno;
         }
     }
-    
+
     return 0;
 }
 
@@ -1547,85 +1548,85 @@ static int fusefm_listxattr(const char *path, char *list, size_t size)
              */
         }
     }
-    
+
     if (res == -1) {
         return -errno;
     }
-    
+
     return res;
 }
 
 static int fusefm_getxattr(const char *path, const char *name, char *value, size_t size, uint32_t position)
 {
     int res;
-    
+
     if (strcmp(name, A_KAUTH_FILESEC_XATTR) == 0) {
-        
+
         char new_name[MAXPATHLEN];
-        
+
         memcpy(new_name, A_KAUTH_FILESEC_XATTR, sizeof(A_KAUTH_FILESEC_XATTR));
         memcpy(new_name, G_PREFIX, sizeof(G_PREFIX) - 1);
-        
+
         res = getxattr(path, new_name, value, size, position, XATTR_NOFOLLOW);
-        
+
     } else {
         res = getxattr(path, name, value, size, position, XATTR_NOFOLLOW);
     }
-    
+
     if (res == -1) {
         return -errno;
     }
-    
+
     return res;
 }
 
 static int fusefm_setxattr(const char *path, const char *name, const char *value, size_t size, int flags, uint32_t position)
 {
     int res;
-    
+
     if (!strncmp(name, XATTR_APPLE_PREFIX, sizeof(XATTR_APPLE_PREFIX) - 1)) {
         flags &= ~(XATTR_NOSECURITY);
     }
-    
+
     if (!strcmp(name, A_KAUTH_FILESEC_XATTR)) {
-        
+
         char new_name[MAXPATHLEN];
-        
+
         memcpy(new_name, A_KAUTH_FILESEC_XATTR, sizeof(A_KAUTH_FILESEC_XATTR));
         memcpy(new_name, G_PREFIX, sizeof(G_PREFIX) - 1);
-        
+
         res = setxattr(path, new_name, value, size, position, XATTR_NOFOLLOW);
-        
+
     } else {
         res = setxattr(path, name, value, size, position, XATTR_NOFOLLOW);
     }
-    
+
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
 static int fusefm_removexattr(const char *path, const char *name)
 {
     int res;
-    
+
     if (strcmp(name, A_KAUTH_FILESEC_XATTR) == 0) {
         char new_name[MAXPATHLEN];
-        
+
         memcpy(new_name, A_KAUTH_FILESEC_XATTR, sizeof(A_KAUTH_FILESEC_XATTR));
         memcpy(new_name, G_PREFIX, sizeof(G_PREFIX) - 1);
-        
+
         res = removexattr(path, new_name, XATTR_NOFOLLOW);
     } else {
         res = removexattr(path, name, XATTR_NOFOLLOW);
     }
-    
+
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1634,38 +1635,38 @@ static int fusefm_removexattr(const char *path, const char *name)
 static int fusefm_getattr(const char *path, struct stat *stbuf)
 {
     int res;
-    
+
     res = lstat(path, stbuf);
-    
+
     /*
      * The optimal I/O size can be set on a per-file basis. Setting st_blksize
      * to zero will cause the kernel extension to fall back on the global I/O
      * size which can be specified at mount-time (option iosize).
      */
     stbuf->st_blksize = 0;
-    
+
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
 static int fusefm_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi)
 {
     int res;
-    
+
     (void)path;
-    
+
     res = fstat(fi->fh, stbuf);
-    
+
     // Fall back to global I/O size. See loopback_getattr().
     stbuf->st_blksize = 0;
-    
+
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
@@ -1678,29 +1679,29 @@ struct loopback_dirp {
 static int fusefm_opendir(const char *path, struct fuse_file_info *fi)
 {
     printf("fusefm_opendir %s\n", path);
-    
+
     QVariantMap error;
     VfsMac::instance()->contentsOfDirectoryAtPath(QString::fromLatin1(path), error);
-    
+
     int ret = -ENOENT;
-    
+
     struct loopback_dirp *d = (loopback_dirp*)malloc(sizeof(struct loopback_dirp));
     if (d == NULL) {
         return -ENOMEM;
     }
-    
+
     d->dp = opendir(path);
     if (d->dp == NULL) {
         ret = -errno;
         free(d);
         return ret;
     }
-    
+
     d->offset = 0;
     d->entry = NULL;
-    
+
     fi->fh = (unsigned long)d;
-    
+
     return 0;
 }
 
@@ -1712,36 +1713,36 @@ static inline struct loopback_dirp *get_dirp(struct fuse_file_info *fi)
 static int fusefm_releasedir(const char *path, struct fuse_file_info *fi)
 {
     struct loopback_dirp *d = get_dirp(fi);
-    
+
     (void)path;
-    
+
     closedir(d->dp);
     free(d);
-    
+
     return 0;
 }
 
 static int fusefm_mknod(const char *path, mode_t mode, dev_t rdev)
 {
     int res;
-    
+
     if (S_ISFIFO(mode)) {
         res = mkfifo(path, mode);
     } else {
         res = mknod(path, mode, rdev);
     }
-    
+
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
 static int fusefm_getxtimes(const char *path, struct timespec *bkuptime, struct timespec *crtime)
 {
     int res;
-    
+
     struct attrlist attributes;
     attributes.bitmapcount = ATTR_BIT_MAP_COUNT;
     attributes.reserved    = 0;
@@ -1750,14 +1751,14 @@ static int fusefm_getxtimes(const char *path, struct timespec *bkuptime, struct 
     attributes.fileattr    = 0;
     attributes.forkattr    = 0;
     attributes.volattr     = 0;
-    
+
     struct xtimeattrbuf {
         uint32_t size;
         struct timespec xtime;
     } __attribute__ ((packed));
-    
+
     struct xtimeattrbuf buf;
-    
+
     attributes.commonattr = ATTR_CMN_BKUPTIME;
     res = getattrlist(path, &attributes, &buf, sizeof(buf), FSOPT_NOFOLLOW);
     if (res == 0) {
@@ -1765,7 +1766,7 @@ static int fusefm_getxtimes(const char *path, struct timespec *bkuptime, struct 
     } else {
         (void)memset(bkuptime, 0, sizeof(struct timespec));
     }
-    
+
     attributes.commonattr = ATTR_CMN_CRTIME;
     res = getattrlist(path, &attributes, &buf, sizeof(buf), FSOPT_NOFOLLOW);
     if (res == 0) {
@@ -1773,63 +1774,63 @@ static int fusefm_getxtimes(const char *path, struct timespec *bkuptime, struct 
     } else {
         (void)memset(crtime, 0, sizeof(struct timespec));
     }
-    
+
     return 0;
 }
 
 static int fusefm_statfs(const char *path, struct statvfs *stbuf)
 {
     int res;
-    
+
     res = statvfs(path, stbuf);
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
 static int fusefm_flush(const char *path, struct fuse_file_info *fi)
 {
     int res;
-    
+
     (void)path;
-    
+
     res = close(dup(fi->fh));
     if (res == -1) {
         return -errno;
     }
-    
+
     return 0;
 }
 
 static struct fuse_operations fusefm_oper = {
     .init        = fusefm_init,
     .destroy     = fusefm_destroy,
-    
+
     // Creating an Item
     .mkdir       = fusefm_mkdir,
     .create      = fusefm_create,
-    
+
     // Removing an Item
     .unlink      = fusefm_unlink,
     .rmdir       = fusefm_rmdir,
-    
+
     // Moving an Item
     .rename      = fusefm_rename,
-    
+
     // Linking an Item
     .link        = fusefm_link,
-    
+
     // Symbolic Links
     .symlink     = fusefm_symlink,
     .readlink    = fusefm_readlink,
-    
+
     // Directory Contents
     .opendir     = fusefm_opendir,
     .readdir     = fusefm_readdir,
     .releasedir  = fusefm_releasedir,
-    
+
     // File Contents
     .open        = fusefm_open,
     .release     = fusefm_release,
@@ -1838,7 +1839,7 @@ static struct fuse_operations fusefm_oper = {
     .fsync       = fusefm_fsync,
     .fallocate   = fusefm_fallocate,
     .exchange    = fusefm_exchange,
-    
+
     // Getting and Setting Attributes
     .statfs      = fusefm_statfs,
     .setvolname  = fusefm_setvolname,
@@ -1847,13 +1848,13 @@ static struct fuse_operations fusefm_oper = {
     .getxtimes   = fusefm_getxtimes,
     .setattr_x   = fusefm_setattr_x,
     .fsetattr_x  = fusefm_fsetattr_x,
-    
+
     // Extended Attributes
     .listxattr   = fusefm_listxattr,
     .getxattr    = fusefm_getxattr,
     .setxattr    = fusefm_setxattr,
     .removexattr = fusefm_removexattr,
-    
+
     //.access      = loopback_access,
     .mknod       = fusefm_mknod,
     .flush       = fusefm_flush,
@@ -1873,11 +1874,11 @@ void VfsMac::mount(QVariantMap args)
 {
     Q_ASSERT(internal_->status() == GMUserFileSystem_NOT_MOUNTED);
     internal_->setStatus(GMUserFileSystem_MOUNTING);
-    
+
     QStringList options = args.value("options").toStringList();
     bool isThreadSafe = internal_->isThreadSafe();
     bool shouldForeground = args.value("shouldForeground").toBool();
-    
+
     // Maybe there is a dead FUSE file system stuck on our mount point?
     struct statfs statfs_buf;
     memset(&statfs_buf, 0, sizeof(statfs_buf));
@@ -1929,7 +1930,7 @@ void VfsMac::mount(QVariantMap args)
             }
         }
     }
-    
+
     // Check mount path as necessary.
     struct stat stat_buf;
     memset(&stat_buf, 0, sizeof(stat_buf));
@@ -1940,7 +1941,7 @@ void VfsMac::mount(QVariantMap args)
         emit FuseFileSystemMountFailed(errorWithCode(ENOTDIR));
         return;
     }
-    
+
     // Trigger initialization of NSFileManager. This is rather lame, but if we
     // don't call directoryContents before we mount our FUSE filesystem and
     // the filesystem uses NSFileManager we may deadlock. It seems that the
@@ -1949,10 +1950,10 @@ void VfsMac::mount(QVariantMap args)
     // system. Once initialized it seems to work fine.
     QDir dir("/Volumes");
     dir.entryList();
-    
+
     QStringList arguments;
     arguments.append(QCoreApplication::applicationFilePath());
-    
+
     if (!isThreadSafe)
         arguments.append("-s");
     if (shouldForeground)
@@ -1965,7 +1966,7 @@ void VfsMac::mount(QVariantMap args)
     }
     arguments.append(internal_->mountPath());
     arguments.append(internal_->rootPath());
-    
+
     // Start Fuse Main
     int argc = arguments.length();
     char** argv = new char*[argc];
@@ -1975,7 +1976,7 @@ void VfsMac::mount(QVariantMap args)
         argv[i] = strdup(argument.toLatin1().data());  // We'll just leak this for now.
     }
     ret = fuse_main(argc, (char **)argv, &fusefm_oper, this);
-    
+
     if (internal_ && internal_->status() == GMUserFileSystem_MOUNTING) {
         // If we returned from fuse_main while we still think we are
         // mounting then an error must have occurred during mount.

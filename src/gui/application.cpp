@@ -325,7 +325,8 @@ void Application::slotAccountStateAdded(AccountState *accountState)
 
     // Mount the virtual FileSystem.
 #if defined(Q_OS_MAC)
-    VfsMacController::instance()->initialize(cfgFile.getFsMirrorPath(), cfgFile.getFsSyncPath(), accountState);
+    ConfigFile cfgFile;
+    VfsMacController::instance()->initialize(cfgFile.defaultFileStreamMirrorPath(), cfgFile.defaultFileStreamSyncPath(), accountState);
     VfsMacController::instance()->mount();
 #endif
 
