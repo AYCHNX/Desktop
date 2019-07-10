@@ -16,11 +16,11 @@ namespace OCC {
 	QString SyncWrapper::getRelativePath(QString path)
 	{
 		QString localPath = QDir::cleanPath(path);
-		if (localPath.endsWith('/'))
-			localPath.chop(1);
+//		if (localPath.endsWith('/'))
+//			localPath.chop(1);
 
-		if (localPath.startsWith('/'))
-			localPath.remove(0, 1);
+//		if (localPath.startsWith('/'))
+//			localPath.remove(0, 1);
 
 		Folder *folderForPath = FolderMan::instance()->folderForPath(localPath);
 
