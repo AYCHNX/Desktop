@@ -649,11 +649,10 @@ void *VfsMac::contentsOfDirectoryAtPath(QString absolutePath, QVariantMap &error
                     fm.createFileAtPath(completePath, attribs, fd, error);
                     close(fd.toInt());
                 }
+				emit addToFileTree(_fileListMap.value(relativePath)->list.at(i)->type, completePath);
+				// update file tree here?
+				OCC::SyncWrapper::instance()->setFileRecord(_fileListMap.value(relativePath)->list.at(i).get(), rootPath_ + (relativePath.endsWith("/") ? relativePath:(relativePath + "/")));
             }
-
-            emit addToFileTree(_fileListMap.value(relativePath)->list.at(i)->type, completePath);
-            // update file tree here?
-            OCC::SyncWrapper::instance()->setFileRecord(_fileListMap.value(relativePath)->list.at(i).get(), rootPath_ + (relativePath.endsWith("/") ? relativePath:(relativePath + "/")));
         }
     }
     _fileListMap.remove(relativePath);
