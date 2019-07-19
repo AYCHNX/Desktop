@@ -409,13 +409,19 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
                 if (cur->type != other->type) {
                     // If the type of the entity changed, it's like NEW, but
                     // needs to delete the other entity first.
-                    cur->instruction = CSYNC_INSTRUCTION_TYPE_CHANGE;
+                    if(ctx->current == REMOTE_REPLICA && other->is_fuse_created_file)
+						cur->instruction = CSYNC_INSTRUCTION_NONE;
+					else cur->instruction = CSYNC_INSTRUCTION_TYPE_CHANGE;
                     other->instruction = CSYNC_INSTRUCTION_NONE;
                 } else if (cur->type == ItemTypeDirectory) {
-                    cur->instruction = CSYNC_INSTRUCTION_UPDATE_METADATA;
+                    if(ctx->current == REMOTE_REPLICA && other->is_fuse_created_file)
+						cur->instruction = CSYNC_INSTRUCTION_NONE;
+					else cur->instruction = CSYNC_INSTRUCTION_UPDATE_METADATA;
                     other->instruction = CSYNC_INSTRUCTION_NONE;
                 } else {
-                    cur->instruction = CSYNC_INSTRUCTION_SYNC;
+					if(ctx->current == REMOTE_REPLICA && other->is_fuse_created_file)
+						cur->instruction = CSYNC_INSTRUCTION_NONE;
+					else cur->instruction = CSYNC_INSTRUCTION_SYNC;
                     other->instruction = CSYNC_INSTRUCTION_NONE;
                 }
                 break;

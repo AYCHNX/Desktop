@@ -50,6 +50,9 @@
 #include "common/syncjournalfilerecord.h"
 #include <common/asserts.h>
 
+#include <QFile>
+#include <QTextStream>
+
 Q_LOGGING_CATEGORY(lcCSync, "sync.csync.csync", QtInfoMsg)
 
 csync_s::csync_s(const char *localUri, OCC::SyncJournalDb *statedb)
@@ -515,6 +518,25 @@ bool cysnc_update_file(CSYNC *ctx, const char *absolutePath, const QByteArray &r
 
 				csync_vio_closedir(ctx, dh);
 				qCDebug(lcCSync, " <= Closing walk for %s with read_from_db %d", absolutePath, read_from_db);
+				qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {
+									    QFile outFile("C:/Nextcloud/tree.txt");
+										outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+										QTextStream ts(&outFile);
+										ts << msg << endl;});
+				std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
+				qDebug() << "0 DISCOVERY/UPDATE cysnc_update_file: Local file tree in the end #########";
+				while (it != ctx->local.files.end()) {
+					qDebug() << "localFile->file_id " << it->second->file_id;
+					qDebug() << "localFile->inode " << it->second->inode;
+					qDebug() << "localFile->etag " << it->second->etag;
+					qDebug() << "localFile->checksumHeader " << it->second->checksumHeader;
+					qDebug() << "localFile->path " << it->second->path;
+					qDebug() << "localFile->is_fuse_created_file " << it->second->is_fuse_created_file;
+					qDebug() << "localFile->instruction " << csync_instruction_str(it->second->instruction);					
+					it++;
+				}
+				qDebug() << "######################################################" << "\n";
+				qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
 
 				ctx->current = REMOTE_REPLICA;
 
@@ -532,17 +554,25 @@ bool cysnc_update_is_fuse_created_file(CSYNC *ctx, const QByteArray &relativePat
 	if (ctx->local.files.findFile(relativePath)) {
 		ctx->local.files.findFile(relativePath)->is_fuse_created_file = is_fuse_created_file;
 
-		//std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-		qDebug() << "cysnc_update_is_fuse_created_file ######################################################" << relativePath << ctx->local.files.findFile(relativePath)->is_fuse_created_file;
-		//while (it != ctx->local.files.end()) {
-		//	qDebug() << "localFile->file_id " << it->second->file_id;
-		//	qDebug() << "localFile->path " << it->second->path;
-		//	qDebug() << "localFile->original_path " << it->second->original_path;
-		//	qDebug() << "localFile->instruction " << it->second->instruction;
-		//	qDebug() << "localFile->is_fuse_created_file " << it->second->is_fuse_created_file;
-		//	it++;
-		//}
-		//qDebug() << "######################################################";
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {
+								QFile outFile("C:/Nextcloud/tree.txt");
+								outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+								QTextStream ts(&outFile);
+								ts << msg << endl;});
+		std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
+		qDebug() << ">> JUST CHECKING cysnc_update_is_fuse_created_file #########";
+		while (it != ctx->local.files.end()) {
+			qDebug() << "localFile->file_id " << it->second->file_id;
+			qDebug() << "localFile->inode " << it->second->inode;
+			qDebug() << "localFile->etag " << it->second->etag;
+			qDebug() << "localFile->checksumHeader " << it->second->checksumHeader;
+			qDebug() << "localFile->path " << it->second->path;
+			qDebug() << "localFile->is_fuse_created_file " << it->second->is_fuse_created_file;
+			qDebug() << "localFile->instruction " << it->second->is_fuse_created_file;					
+			it++;
+		}
+		qDebug() << "######################################################" << "\n";
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
 
 		return true;
 
@@ -556,16 +586,25 @@ bool cysnc_update_path(CSYNC *ctx, const QByteArray &relativeOldPath, const QByt
 	if (ctx->local.files.findFile(relativeOldPath)) {
 		ctx->local.files.findFile(relativeOldPath)->path = relativeNewPath;
 
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {
+								QFile outFile("C:/Nextcloud/tree.txt");
+								outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+								QTextStream ts(&outFile);
+								ts << msg << "\n" << endl;});
+		qDebug() << "'DISCOVERY' PHASE cysnc_update_path: Local file tree after updating one file #######";
 		std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-		qDebug() << "cysnc_update_path ######################################################" << relativeOldPath << ctx->local.files.findFile(relativeOldPath)->path;
 		while (it != ctx->local.files.end()) {
 			qDebug() << "localFile->file_id " << it->second->file_id;
+			qDebug() << "localFile->etag " << it->second->etag;
+			qDebug() << "localFile->checksumHeader " << it->second->checksumHeader;
+			qDebug() << "localFile->inode " << it->second->inode;
 			qDebug() << "localFile->path " << it->second->path;
+			qDebug() << "localFile->is_fuse_created_file " << it->second->is_fuse_created_file;
 			qDebug() << "localFile->instruction " << csync_instruction_str(it->second->instruction);
 			it++;
 		}
-		qDebug() << "######################################################";
-
+		qDebug() << "####################################################" << "\n";
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
 		return true;
 
 	}

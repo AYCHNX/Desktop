@@ -284,12 +284,14 @@ static int _csync_detect_update(CSYNC *ctx, std::unique_ptr<csync_file_stat_t> f
       if( ctx->current == REMOTE_REPLICA ) {
           fs->has_ignored_files = base._serverHasIgnoredFiles;
       }
-      if (metadata_differ) {
+      if (metadata_differ) { 
           /* file id or permissions has changed. Which means we need to update them in the DB. */
           qCDebug(lcUpdate, "Need to update metadata for: %s", fs->path.constData());
-          if(!fs->is_fuse_created_file) fs->instruction = CSYNC_INSTRUCTION_UPDATE_METADATA;
+          //if(!fs->is_fuse_created_file)
+			  fs->instruction = CSYNC_INSTRUCTION_UPDATE_METADATA;
       } else {
-          fs->instruction = CSYNC_INSTRUCTION_NONE;
+          //if(!fs->is_fuse_created_file) 
+			  fs->instruction = CSYNC_INSTRUCTION_NONE;
       }
   } else {
       /* check if it's a file and has been renamed */

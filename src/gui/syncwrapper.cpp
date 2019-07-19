@@ -1,7 +1,7 @@
 #include "syncwrapper.h"
 #include "socketapi.h"
 #include "csync/vio/csync_vio_local.h"
-
+#include "csync/csync_util.h"
 #include <qdir.h>
 
 namespace OCC {
@@ -24,24 +24,38 @@ namespace OCC {
 
 		Folder *folderForPath = FolderMan::instance()->folderForPath(localPath);
 
-		QString folderRelativePath("");
-		if (folderForPath)
-			folderRelativePath = localPath.mid(folderForPath->cleanPath().length() + 1);
+		//QString folderRelativePath("");
+		//if (folderForPath)
+		//	folderRelativePath = localPath.mid(folderForPath->cleanPath().length() + 1);
 
-		return folderRelativePath;
+		return folderForPath->cleanPath();
 	}
 
 	void SyncWrapper::updateFileTree(int type, const QString path)
 	{
-		//csync_instructions_e instruction = (type == 2) ? CSYNC_INSTRUCTION_NEW : CSYNC_INSTRUCTION_IGNORE;
+		//QString folderRelativePath = getRelativePath(path);
+		QString folderRelativePath = path;
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {
+				QFile outFile("C:/Nextcloud/tree.txt");
+				outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+				QTextStream ts(&outFile);
+				ts << msg << endl;});
+		
+		qDebug() << ">> SyncWrapper::updateFileTree #######" << path;
+		qDebug() << "path: " << path;
+		qDebug() << "folderRelativePath: " << folderRelativePath;
+		qDebug() << "sync mode: " << SyncJournalDb::instance()->getSyncMode(folderRelativePath);
 
-		if (SyncJournalDb::instance()->getSyncMode(getRelativePath(path)) != SyncJournalDb::SyncMode::SYNCMODE_OFFLINE) {
-			FolderMan::instance()->currentSyncFolder()->updateLocalFileTree(getRelativePath(path), CSYNC_INSTRUCTION_IGNORE);
+		if (SyncJournalDb::instance()->getSyncMode(folderRelativePath) != SyncJournalDb::SyncMode::SYNCMODE_OFFLINE) {
+			qDebug() << "instruction: " << csync_instruction_str(CSYNC_INSTRUCTION_IGNORE);
+			FolderMan::instance()->currentSyncFolder()->updateLocalFileTree(folderRelativePath, CSYNC_INSTRUCTION_IGNORE);
 		} else {
-			FolderMan::instance()->currentSyncFolder()->updateLocalFileTree(getRelativePath(path), CSYNC_INSTRUCTION_NEW);
+			qDebug() << "instruction: " << csync_instruction_str(CSYNC_INSTRUCTION_NEW);
+			FolderMan::instance()->currentSyncFolder()->updateLocalFileTree(folderRelativePath, CSYNC_INSTRUCTION_NEW);
 		}
 
-		FolderMan::instance()->currentSyncFolder()->updateFuseCreatedFile(getRelativePath(path), true);
+		qDebug() << "######################################################";
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
 	}
 
 	void SyncWrapper::createItemAtPath(const QString path)
@@ -83,6 +97,12 @@ namespace OCC {
 	
     void SyncWrapper::setFileRecord(csync_file_stat_t *remoteNode, const QString localPath) {
             //otherwise rename and move will never work
+			qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {
+					QFile outFile("C:/Nextcloud/tree.txt");
+					outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+					QTextStream ts(&outFile);
+					ts << msg << endl;});
+			qDebug() << ">> SyncWrapper::setFileRecord #######" << localPath;
             qDebug() << Q_FUNC_INFO << "results: " << remoteNode->path << remoteNode->type;
             OCC::SyncJournalFileRecord rec;
             if (SyncJournalDb::instance()->getFileRecord(remoteNode->path, &rec)) {
@@ -93,36 +113,58 @@ namespace OCC {
                     }
 
                     rec._path = remoteNode->path;
-                    rec._etag = remoteNode->etag;
+                    //rec._etag = remoteNode->etag; no etag on the first run...
                     rec._fileId = remoteNode->file_id;
                     rec._modtime = remoteNode->modtime;
                     rec._type = remoteNode->type;
                     rec._fileSize = remoteNode->size;
                     rec._remotePerm = remoteNode->remotePerm;
                     rec._checksumHeader = remoteNode->checksumHeader;
-                    SyncJournalDb::instance()->setFileRecordMetadata(rec);
+                    SyncJournalDb::instance()->setFileRecordMetadata(rec);\
+					FolderMan::instance()->currentSyncFolder()->updateFuseCreatedFile(fullPath, true);
             }
+			qDebug() << "######################################################";
+			qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
     }
 
 
 	void SyncWrapper::sync(const QString path, bool is_fuse_created_file, csync_instructions_e instruction)
 	{
 		QString folderRelativePath = getRelativePath(path);
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {
+						QFile outFile("C:/Nextcloud/tree.txt");
+						outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+						QTextStream ts(&outFile);
+						ts << msg << endl;});
+
 		if (!folderRelativePath.isEmpty()) {
 
 			if (SyncJournalDb::instance()->updateLastAccess(folderRelativePath) == 0)
-				qCWarning(lcSyncWrapper) << "Couldn't update file to last access.";
+				qCWarning(lcSyncWrapper) << "Couldn't update " << folderRelativePath << " file to last access.";
 
 			if (SyncJournalDb::instance()->setSyncModeDownload(folderRelativePath, SyncJournalDb::SyncModeDownload::SYNCMODE_DOWNLOADED_NO) == 0)
-				qCWarning(lcSyncWrapper) << "Couldn't set file to SYNCMODE_DOWNLOADED_NO.";
+				qCWarning(lcSyncWrapper) << "Couldn't set file " << folderRelativePath << " to SYNCMODE_DOWNLOADED_NO.";
 
 			FolderMan::instance()->currentSyncFolder()->updateLocalFileTree(folderRelativePath, instruction);
+
+			qDebug() << ">> SyncWrapper::sync #######" << path;
+			qDebug() << "path: " << path;
+			qDebug() << "folderRelativePath: " << folderRelativePath;
+			qDebug() << "is_fuse_created_file: " << is_fuse_created_file;
+			qDebug() << "instruction: " << csync_instruction_str(instruction);
+
 			//_syncDone.insert(folderRelativePath, false);
 			FolderMan::instance()->scheduleFolder();
+
+			qDebug() << "######################################################";
+			qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
 
 		} else {
 			emit syncFinish();
 		}
+
+		qDebug() << "######################################################";
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
 	}
 
 	bool SyncWrapper::shouldSync(const QString path)

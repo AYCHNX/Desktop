@@ -683,7 +683,8 @@ int SyncEngine::treewalkFile(csync_file_stat_t *file, csync_file_stat_t *other, 
                 _hasForwardInTimeFiles = true;
             }
         }
-        dir = remote ? SyncFileItem::Down : SyncFileItem::Up;
+        //dir = (remote || file->is_fuse_created_file) ? SyncFileItem::Down : SyncFileItem::Up;
+		dir = (remote) ? SyncFileItem::Down : SyncFileItem::Up;
         break;
     case CSYNC_INSTRUCTION_NEW:
     case CSYNC_INSTRUCTION_EVAL:
@@ -982,6 +983,38 @@ void SyncEngine::slotDiscoveryJobFinished(int discoveryResult)
         return;
     }
 
+	qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {
+							QFile outFile("C:/Nextcloud/tree.txt");
+							outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+							QTextStream ts(&outFile);
+							ts << msg << endl;});
+	qDebug() << "1 RECONCILE PHASE slotDiscoveryJobFinished: Local file tree in the end #######";
+	qDebug() << "LOCAL ##################################";
+	std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = _csync_ctx->local.files.begin();
+	while (it != _csync_ctx->local.files.end()) {
+		qDebug() << "localFile->file_id " << it->second->file_id;
+		qDebug() << "localFile->inode " << it->second->inode;
+		qDebug() << "localFile->etag " << it->second->etag;
+		qDebug() << "localFile->checksumHeader " << it->second->checksumHeader;
+		qDebug() << "localFile->path " << it->second->path;
+		qDebug() << "localFile->is_fuse_created_file " << it->second->is_fuse_created_file;
+		qDebug() << "localFile->instruction " << csync_instruction_str(it->second->instruction);					
+		it++;
+	}
+	qDebug() << "REMOTE ##############################";
+	std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator itr = _csync_ctx->remote.files.begin();
+	while (itr != _csync_ctx->remote.files.end()) {
+		qDebug() << "remoteFile->file_id " << itr->second->file_id;
+		qDebug() << "remoteFile->inode " << itr->second->inode;
+		qDebug() << "remoteFile->etag " << itr->second->etag;
+		qDebug() << "remoteFile->checksumHeader " << itr->second->checksumHeader;
+		qDebug() << "remoteFile->path " << itr->second->path;
+		qDebug() << "remoteFile->instruction " << csync_instruction_str(itr->second->instruction);					
+		itr++;
+	}
+	qDebug() << "###############################" << "\n";
+	qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
+
     qCInfo(lcEngine) << "#### Reconcile end #################################################### " << _stopWatch.addLapTime(QLatin1String("Reconcile Finished")) << "ms";
 
     _hasNoneFiles = false;
@@ -1079,24 +1112,22 @@ void SyncEngine::slotDiscoveryJobFinished(int discoveryResult)
     _csync_ctx->reinitialize();
     //_localDiscoveryPaths.clear();
 
-	//std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-	//qDebug() << "LOCAL ######################################################";
-	//while (it != ctx->local.files.end()) {
-	//	qDebug() << "localFile->file_id " << it->second->file_id;
-	//	qDebug() << "localFile->path " << it->second->path;
-	//	qDebug() << "localFile->instruction " << it->second->instruction;
-	//	it++;
-	//}
-	//qDebug() << "######################################################";
-
     // To announce the beginning of the sync
-	qDebug() << "## ABOUT TO PROPAGATE #######";
+	qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {
+							QFile outFile("C:/Nextcloud/tree.txt");
+							outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+							QTextStream ts(&outFile);
+							ts << msg << endl;});
+	qDebug() << "2 POST RECONCILE PHASE slotDiscoveryJobFinished: local and remote tree merged => that will be propagated #######";
     for (SyncFileItemVector::iterator it = syncItems.begin(); it != syncItems.end(); ++it) {
         qDebug() << "file: " << (*it)->_file;
+		qDebug() << "inode: " << (*it)->_inode;
+		qDebug() << "etag: " << (*it)->_etag;
 		qDebug() << "instruction: " << csync_instruction_str((*it)->_instruction);
 		qDebug() << "direction: " << (*it)->_direction;
     }
-	qDebug() << "##############";
+	qDebug() << "######################################################" << "\n";
+	qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
     emit aboutToPropagate(syncItems);
 
     // it's important to do this before ProgressInfo::start(), to announce start of new sync
