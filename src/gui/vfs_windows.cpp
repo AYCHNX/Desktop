@@ -2669,7 +2669,7 @@ QStringList *VfsWindows::contentsOfDirectoryAtPath(QString path, QVariantMap &er
 			}
 			
 			
-			SyncWrapper::instance()->setFileRecord(_fileListMap.value(path)->list.at(i).get(), rootPath + (path.endsWith("/")?path:(path+"/")));
+			SyncWrapper::instance()->setFileRecord(_fileListMap.value(path)->list.at(i).get(), completePath);
 		}
 
 		emit addToFileTree(_fileListMap.value(path)->list.at(i)->type, completePath);

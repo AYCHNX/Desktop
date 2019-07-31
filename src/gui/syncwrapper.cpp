@@ -55,10 +55,12 @@ namespace OCC {
 		qDebug() << "sync mode: " << SyncJournalDb::instance()->getSyncMode(getRelativePath(path));
 
 		OCC::SyncJournalFileRecord rec;
-		if (SyncJournalDb::instance()->getFileRecord(getRelativePath(path), &rec))
-			if (rec._path.isEmpty()) {
+		if (SyncJournalDb::instance()->getFileRecord(getRelativePath(path), &rec)) {
+			qDebug() << "_etag: " << rec._etag;
+			if (rec._etag.isEmpty()) {
 				FolderMan::instance()->currentSyncFolder()->updateFuseCreatedFile(getRelativePath(path), true);
 			}
+		}
 	}
 
 	void SyncWrapper::createItemAtPath(const QString path)
@@ -103,14 +105,13 @@ namespace OCC {
             qDebug() << Q_FUNC_INFO << "results: " << remoteNode->path << remoteNode->type;
             OCC::SyncJournalFileRecord rec;
             if (SyncJournalDb::instance()->getFileRecord(remoteNode->path, &rec)) {
-                    QByteArray fullPath(localPath.toLatin1() + remoteNode->path);
+                    QByteArray fullPath(localPath.toLatin1());
                     if (csync_vio_local_stat(fullPath.constData(), remoteNode) == 0) {
                             rec._inode = remoteNode->inode;
                             qCDebug(lcSyncWrapper) << remoteNode->path << "Retrieved inode " << remoteNode->inode;
                     }
 
                     rec._path = remoteNode->path;
-                    //rec._etag = remoteNode->etag;
                     rec._fileId = remoteNode->file_id;
                     rec._modtime = remoteNode->modtime;
                     rec._type = remoteNode->type;
