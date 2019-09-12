@@ -2639,7 +2639,7 @@ QStringList *VfsWindows::contentsOfDirectoryAtPath(QString path, QVariantMap &er
    	{
 		QString root = rootPath;
 		root.endsWith("/") ? root.truncate(root.length() -1) : root;
-		QString completePath = root + (path.endsWith("/") ? path :(path+"/")) + QString::fromLatin1(_fileListMap.value(path)->list.at(i)->path);
+		QString completePath = root + path + QString::fromLatin1(_fileListMap.value(path)->list.at(i)->path);
 
 		if (!ignoredList.empty()) {
 			foreach(QString item, ignoredList)
@@ -2667,11 +2667,10 @@ QStringList *VfsWindows::contentsOfDirectoryAtPath(QString path, QVariantMap &er
 					QDir().mkdir(completePath);
 				}
 			}
-			emit addToFileTree(_fileListMap.value(path)->list.at(i)->type, completePath);
-			SyncWrapper::instance()->setFileRecord(_fileListMap.value(path)->list.at(i).get(), rootPath + (path.endsWith("/")?path:(path+"/")));
+			
 		}
-		//if (_fileListMap.value(path)->list.at(i)->type == ItemTypeFile)
-		//qDebug() << Q_FUNC_INFO << "results: " << r->name << r->type;
+		
+		SyncWrapper::instance()->updateFileTree(!!fi.exists(), rootPath, completePath, _fileListMap.value(path)->list.at(i).get());
 	}
 	
 	delete(_fileListMap.value(path));

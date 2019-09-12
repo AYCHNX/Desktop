@@ -1001,6 +1001,31 @@ void SyncEngine::slotDiscoveryJobFinished(int discoveryResult)
         qCWarning(lcEngine) << "Error in remote treewalk.";
     }
 
+	std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = _csync_ctx.data()->local.files.begin();
+	qDebug() << "csync_walk_tree LOCAL ######################################################";
+	while (it != _csync_ctx.data()->local.files.end()) {
+	qDebug() << "localFile->file_id " << it->second->file_id;
+	qDebug() << "localFile->path " << it->second->path;
+	qDebug() << "localFile->original_path " << it->second->original_path;
+	qDebug() << "localFile->instruction " << it->second->instruction;
+	qDebug() << "localFile->is_fuse_created_file " << it->second->is_fuse_created_file;
+	it++;
+	}
+	qDebug() << "######################################################";
+
+	std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator itr = _csync_ctx.data()->remote.files.begin();
+	qDebug() << "csync_walk_tree REMOTE	######################################################";
+	while (itr != _csync_ctx.data()->remote.files.end()) {
+	qDebug() << "remote->file_id " << itr->second->file_id;
+	qDebug() << "remote->path " << itr->second->path;
+	qDebug() << "remote->original_path " << itr->second->original_path;
+	qDebug() << "remote->instruction " << itr->second->instruction;
+	qDebug() << "remote->is_fuse_created_file " << itr->second->is_fuse_created_file;
+	itr++;
+	}
+	qDebug() << "######################################################";
+
+
     qCInfo(lcEngine) << "Permissions of the root folder: " << _csync_ctx->remote.root_perms.toString();
 
     // The map was used for merging trees, convert it to a list:

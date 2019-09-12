@@ -100,7 +100,7 @@ signals:
 	void startRemoteFileListJob(QString path);
 
 	// To sync: propagate FUSE operations to the sync engine
-    void addToFileTree(int type, const QString path);
+    void addToFileTree(bool newFile, const QString rootPath, const QString path, csync_file_stat_t *remoteNode);
     void createItem(const QString path);
     void openFile(const QString path);
     void writeFile(const QString path);

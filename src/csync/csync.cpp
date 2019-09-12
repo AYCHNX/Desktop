@@ -529,11 +529,12 @@ bool cysnc_update_file(CSYNC *ctx, const char *absolutePath, const QByteArray &r
 
 bool cysnc_update_is_fuse_created_file(CSYNC *ctx, const QByteArray &relativePath, bool is_fuse_created_file)
 {
+	qDebug() << "cysnc_update_is_fuse_created_file ######################################################" << relativePath;
 	if (ctx->local.files.findFile(relativePath)) {
 		ctx->local.files.findFile(relativePath)->is_fuse_created_file = is_fuse_created_file;
 
 		//std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-		qDebug() << "cysnc_update_is_fuse_created_file ######################################################" << relativePath << ctx->local.files.findFile(relativePath)->is_fuse_created_file;
+		//qDebug() << "cysnc_update_is_fuse_created_file ######################################################" << relativePath << ctx->local.files.findFile(relativePath)->is_fuse_created_file;
 		//while (it != ctx->local.files.end()) {
 		//	qDebug() << "localFile->file_id " << it->second->file_id;
 		//	qDebug() << "localFile->path " << it->second->path;
@@ -556,15 +557,15 @@ bool cysnc_update_path(CSYNC *ctx, const QByteArray &relativeOldPath, const QByt
 	if (ctx->local.files.findFile(relativeOldPath)) {
 		ctx->local.files.findFile(relativeOldPath)->path = relativeNewPath;
 
-		std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-		qDebug() << "cysnc_update_path ######################################################" << relativeOldPath << ctx->local.files.findFile(relativeOldPath)->path;
-		while (it != ctx->local.files.end()) {
-			qDebug() << "localFile->file_id " << it->second->file_id;
-			qDebug() << "localFile->path " << it->second->path;
-			qDebug() << "localFile->instruction " << csync_instruction_str(it->second->instruction);
-			it++;
-		}
-		qDebug() << "######################################################";
+		//std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
+		//qDebug() << "cysnc_update_path ######################################################" << relativeOldPath << ctx->local.files.findFile(relativeOldPath)->path;
+		//while (it != ctx->local.files.end()) {
+		//	qDebug() << "localFile->file_id " << it->second->file_id;
+		//	qDebug() << "localFile->path " << it->second->path;
+		//	qDebug() << "localFile->instruction " << csync_instruction_str(it->second->instruction);
+		//	it++;
+		//}
+		//qDebug() << "######################################################";
 
 		return true;
 

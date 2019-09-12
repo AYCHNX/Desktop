@@ -1,7 +1,6 @@
 #include "syncwrapper.h"
 #include "socketapi.h"
 #include "csync/vio/csync_vio_local.h"
-
 #include <qdir.h>
 
 namespace OCC {
@@ -10,39 +9,52 @@ namespace OCC {
 	SyncWrapper *SyncWrapper::instance()
 	{
 		static SyncWrapper instance;
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {
+                            QFile outFile("C:/Nextcloud/tree.txt");
+                            outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+                            QTextStream ts(&outFile);
+                            ts << msg << endl;});
+
 		return &instance;
 	}
 
 	QString SyncWrapper::getRelativePath(QString path)
 	{
 		QString localPath = QDir::cleanPath(path);
-		if (localPath.endsWith('/'))
-			localPath.chop(1);
+		//if (localPath.endsWith('/'))
+		//	localPath.chop(1);
 
-		if (localPath.startsWith('/'))
-			localPath.remove(0, 1);
+		//if (localPath.startsWith('/'))
+		//	localPath.remove(0, 1);
 
 		Folder *folderForPath = FolderMan::instance()->folderForPath(localPath);
 
-		QString folderRelativePath("");
-		if (folderForPath)
-			folderRelativePath = localPath.mid(folderForPath->cleanPath().length() + 1);
+		//QString folderRelativePath("");
+		//if (folderForPath)
+		//	folderRelativePath = localPath.mid(folderForPath->cleanPath().length() + 1);
 
-		return folderRelativePath;
+		return folderForPath->cleanPath();
 	}
 
-	void SyncWrapper::updateFileTree(int type, const QString path)
+	void SyncWrapper::updateFileTree(bool newFile, const QString rootPath, const QString path, csync_file_stat_t *remoteNode)
 	{
-		//csync_instructions_e instruction = (type == 2) ? CSYNC_INSTRUCTION_NEW : CSYNC_INSTRUCTION_IGNORE;
-
-		if (SyncJournalDb::instance()->getSyncMode(getRelativePath(path)) != SyncJournalDb::SyncMode::SYNCMODE_OFFLINE) {
-			FolderMan::instance()->currentSyncFolder()->updateLocalFileTree(getRelativePath(path), CSYNC_INSTRUCTION_IGNORE);
+		QString folderRelativePath = path;
+		qDebug() << Q_FUNC_INFO << "rootPath: " << rootPath;
+		qDebug() << Q_FUNC_INFO << "path: " << path;
+		qDebug() << Q_FUNC_INFO << "getRelativePath(path): " << getRelativePath(path);
+		if (SyncJournalDb::instance()->getSyncMode(remoteNode->path) != SyncJournalDb::SyncMode::SYNCMODE_OFFLINE) {
+			FolderMan::instance()->currentSyncFolder()->updateLocalFileTree(remoteNode->path, CSYNC_INSTRUCTION_IGNORE);
 		} else {
-			FolderMan::instance()->currentSyncFolder()->updateLocalFileTree(getRelativePath(path), CSYNC_INSTRUCTION_NEW);
+			FolderMan::instance()->currentSyncFolder()->updateLocalFileTree(remoteNode->path, CSYNC_INSTRUCTION_NEW);
 		}
 
-		FolderMan::instance()->currentSyncFolder()->updateFuseCreatedFile(getRelativePath(path), true);
+		if (newFile) {
+			setFileRecord(remoteNode, rootPath);
+		}
+		
+		FolderMan::instance()->currentSyncFolder()->updateFuseCreatedFile(remoteNode->path, newFile);
 	}
+
 
 	void SyncWrapper::createItemAtPath(const QString path)
 	{
@@ -52,7 +64,7 @@ namespace OCC {
 
 	void SyncWrapper::openFileAtPath(const QString path)
 	{
-		sync(path, true, CSYNC_INSTRUCTION_EVAL);
+		sync(path, true, CSYNC_INSTRUCTION_NEW);
 	}
 
 	void SyncWrapper::writeFileAtPath(const QString path)
@@ -83,17 +95,17 @@ namespace OCC {
 	
     void SyncWrapper::setFileRecord(csync_file_stat_t *remoteNode, const QString localPath) {
             //otherwise rename and move will never work
-            qDebug() << Q_FUNC_INFO << "results: " << remoteNode->path << remoteNode->type;
+			qDebug() << Q_FUNC_INFO << "remoteNode->path: " << remoteNode->path;
             OCC::SyncJournalFileRecord rec;
             if (SyncJournalDb::instance()->getFileRecord(remoteNode->path, &rec)) {
                     QByteArray fullPath(localPath.toLatin1() + remoteNode->path);
+					qDebug() << Q_FUNC_INFO << "fullPath: " << fullPath;
                     if (csync_vio_local_stat(fullPath.constData(), remoteNode) == 0) {
                             rec._inode = remoteNode->inode;
                             qCDebug(lcSyncWrapper) << remoteNode->path << "Retrieved inode " << remoteNode->inode;
                     }
 
                     rec._path = remoteNode->path;
-                    rec._etag = remoteNode->etag;
                     rec._fileId = remoteNode->file_id;
                     rec._modtime = remoteNode->modtime;
                     rec._type = remoteNode->type;

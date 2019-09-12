@@ -15,13 +15,15 @@ class SyncWrapper : public QObject
     Q_OBJECT
 public:
     static SyncWrapper *instance();
-    ~SyncWrapper() {}
+    ~SyncWrapper() {
+		qInstallMessageHandler([](QtMsgType type, const QMessageLogContext &, const QString & msg) {});
+	}
 
 	void setFileRecord(csync_file_stat_t *remoteNode, const QString localPath);
 
 public slots:
     //void updateSyncQueue();
-    void updateFileTree(int type, const QString path);
+    void updateFileTree(bool newFile, const QString rootPath, const QString path, csync_file_stat_t *remoteNode);
 
 	void createItemAtPath(const QString path);
     void openFileAtPath(const QString path);
