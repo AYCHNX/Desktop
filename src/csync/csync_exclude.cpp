@@ -779,10 +779,12 @@ void ExcludedFiles::prepare(const BasePathByteArray & basePath)
     // (exclude)|(excluderemove)|(bname triggers).
     // If the third group matches, the fullActivatedRegex needs to be applied
     // to the full path.
+    _bnameTraversalRegexFile[basePath] = QRegularExpression();
     _bnameTraversalRegexFile[basePath].setPattern(
         "^(?P<exclude>" + bnameFileDirKeep + ")$|"
         + "^(?P<excluderemove>" + bnameFileDirRemove + ")$|"
         + "^(?P<trigger>" + bnameTriggerFileDir + ")$");
+    _bnameTraversalRegexDir[basePath] = QRegularExpression();
     _bnameTraversalRegexDir[basePath].setPattern(
         "^(?P<exclude>" + bnameFileDirKeep + "|" + bnameDirKeep + ")$|"
         + "^(?P<excluderemove>" + bnameFileDirRemove + "|" + bnameDirRemove + ")$|"
@@ -792,12 +794,14 @@ void ExcludedFiles::prepare(const BasePathByteArray & basePath)
     // the bname regex matches. Its basic form is (exclude)|(excluderemove)".
     // This pattern can be much simpler than fullRegex since we can assume a traversal
     // situation and doesn't need to look for bname patterns in parent paths.
+    _fullTraversalRegexFile[basePath] = QRegularExpression();
     _fullTraversalRegexFile[basePath].setPattern(
         QLatin1String("")
         // Full patterns are anchored to the beginning
         + "^(?P<exclude>" + fullFileDirKeep + ")(?:$|/)"
         + "|"
         + "^(?P<excluderemove>" + fullFileDirRemove + ")(?:$|/)");
+    _fullTraversalRegexDir[basePath] = QRegularExpression();
     _fullTraversalRegexDir[basePath].setPattern(
         QLatin1String("")
         + "^(?P<exclude>" + fullFileDirKeep + "|" + fullDirKeep + ")(?:$|/)"
@@ -806,6 +810,7 @@ void ExcludedFiles::prepare(const BasePathByteArray & basePath)
 
     // The full regex is applied to the full path and incorporates both bname and
     // full-path patterns. It has the form "(exclude)|(excluderemove)".
+    _fullRegexFile[basePath] = QRegularExpression();
     _fullRegexFile[basePath].setPattern(
         QLatin1String("(?P<exclude>")
         // Full patterns are anchored to the beginning
@@ -822,6 +827,7 @@ void ExcludedFiles::prepare(const BasePathByteArray & basePath)
         + "(?:^|/)(?:" + bnameFileDirRemove + ")(?:$|/)" + "|"
         + "(?:^|/)(?:" + bnameDirRemove + ")/"
         + ")");
+    _fullRegexDir[basePath] = QRegularExpression();
     _fullRegexDir[basePath].setPattern(
         QLatin1String("(?P<exclude>")
         + "^(?:" + fullFileDirKeep + "|" + fullDirKeep + ")(?:$|/)" + "|"
