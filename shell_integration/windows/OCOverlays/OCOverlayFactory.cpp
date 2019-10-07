@@ -43,7 +43,7 @@ IFACEMETHODIMP OCOverlayFactory::QueryInterface(REFIID riid, void **ppv)
     else
     {
         hResult = E_NOINTERFACE;
-        *ppv = NULL;
+        *ppv = nullptr;
     }
 
     return hResult;

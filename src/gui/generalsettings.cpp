@@ -208,7 +208,6 @@ void GeneralSettings::slotShowLegalNotice()
 {
     auto notice = new LegalNotice();
     notice->exec();
-    delete notice;
 }
 
 } // namespace OCC

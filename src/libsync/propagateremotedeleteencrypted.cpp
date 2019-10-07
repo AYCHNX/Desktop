@@ -54,7 +54,7 @@ void PropagateRemoteDeleteEncrypted::slotFolderLockedSuccessfully(const QByteArr
     _folderToken = token;
     _folderId = folderId;
 
-    auto job = new GetMetadataApiJob(_propagator->account(), _folderId);
+    auto job = new GetMetadataApiJob(_propagator->account(), _folderId, this);
     connect(job, &GetMetadataApiJob::jsonReceived, this, &PropagateRemoteDeleteEncrypted::slotFolderEncryptedMetadataReceived);
     connect(job, &GetMetadataApiJob::error, this, &PropagateRemoteDeleteEncrypted::taskFailed);
     job->start();
@@ -97,7 +97,8 @@ void PropagateRemoteDeleteEncrypted::slotFolderEncryptedMetadataReceived(const Q
     auto job = new UpdateMetadataApiJob(_propagator->account(),
                                         _folderId,
                                         metadata.encryptedMetadata(),
-                                        _folderToken);
+                                        _folderToken,
+										this);
 
     connect(job, &UpdateMetadataApiJob::success, this, &PropagateRemoteDeleteEncrypted::unlockFolder);
     connect(job, &UpdateMetadataApiJob::error, this, &PropagateRemoteDeleteEncrypted::taskFailed);

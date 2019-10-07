@@ -117,7 +117,7 @@ void ServerNotificationHandler::slotNotificationsReceived(const QJsonDocument &j
         a._message = json.value("message").toString();
 
         if(!json.value("icon").toString().isEmpty()){
-            IconJob *iconJob = new IconJob(QUrl(json.value("icon").toString()));
+            IconJob *iconJob = new IconJob(QUrl(json.value("icon").toString()), this);
             iconJob->setProperty("activityId", a._id);
             connect(iconJob, &IconJob::jobFinished, this, &ServerNotificationHandler::slotIconDownloaded);
         }

@@ -117,7 +117,7 @@ void Flow2Auth::slotPollTimerTimeout()
     QNetworkRequest req;
     req.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
-    auto requestBody = new QBuffer;
+    auto requestBody = new QBuffer(this);
     QUrlQuery arguments(QString("token=%1").arg(_pollToken));
     requestBody->setData(arguments.query(QUrl::FullyEncoded).toLatin1());
 

@@ -86,7 +86,7 @@ void OAuth::start()
                     Theme::instance()->oauthClientId(), Theme::instance()->oauthClientSecret());
                 req.setRawHeader("Authorization", "Basic " + basicAuth.toUtf8().toBase64());
 
-                auto requestBody = new QBuffer;
+                auto requestBody = new QBuffer(this);
                 QUrlQuery arguments(QString(
                     "grant_type=authorization_code&code=%1&redirect_uri=http://localhost:%2")
                                         .arg(code, QString::number(_server.serverPort())));

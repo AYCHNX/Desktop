@@ -460,7 +460,7 @@ void SelectiveSyncDialog::init(const AccountPtr &account)
     QVBoxLayout *layout = new QVBoxLayout(this);
     _selectiveSync = new SelectiveSyncWidget(account, this);
     layout->addWidget(_selectiveSync);
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Horizontal);
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Horizontal, this);
     _okButton = buttonBox->addButton(QDialogButtonBox::Ok);
     connect(_okButton, &QPushButton::clicked, this, &SelectiveSyncDialog::accept);
     QPushButton *button;

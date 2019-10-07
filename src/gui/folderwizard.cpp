@@ -538,14 +538,14 @@ FolderWizard::FolderWizard(AccountPtr account, QWidget *parent)
     , _folderWizardSelectiveSyncPage(new FolderWizardSelectiveSync(account))
 {
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    setPage(Page_Source, _folderWizardSourcePage);
+    setPage(Page_Source, _folderWizardSourcePage.get());
     _folderWizardSourcePage->installEventFilter(this);
     if (!Theme::instance()->singleSyncFolder()) {
-        _folderWizardTargetPage = new FolderWizardRemotePath(account);
-        setPage(Page_Target, _folderWizardTargetPage);
+        _folderWizardTargetPage = std::make_unique<FolderWizardRemotePath>(account);
+        setPage(Page_Target, _folderWizardTargetPage.get());
         _folderWizardTargetPage->installEventFilter(this);
     }
-    setPage(Page_SelectiveSync, _folderWizardSelectiveSyncPage);
+    setPage(Page_SelectiveSync, _folderWizardSelectiveSyncPage.get());
 
     setWindowTitle(tr("Add Folder Sync Connection"));
     setOptions(QWizard::CancelButtonOnLeft);

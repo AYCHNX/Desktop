@@ -808,6 +808,7 @@ void ownCloudGui::slotEtagResponseHeaderReceived(const QByteArray &value, int st
 
 void ownCloudGui::fetchNavigationApps(AccountStatePtr account){
     OcsNavigationAppsJob *job = new OcsNavigationAppsJob(account->account());
+    job->setParent(this);
     job->setProperty(propertyAccountC, QVariant::fromValue(account));
     job->addRawHeader("If-None-Match", account->navigationAppsEtagResponseHeader());
     connect(job, &OcsNavigationAppsJob::appsJobFinished, this, &ownCloudGui::slotNavigationAppsFetched);
@@ -838,7 +839,7 @@ void ownCloudGui::buildNavigationAppsMenu(AccountStatePtr account, QMenu *accoun
         }
 
         // Create submenu with links
-        QMenu *navLinksMenu = new QMenu(tr("Apps"));
+        QMenu *navLinksMenu = new QMenu(tr("Apps"), accountMenu);
         accountMenu->insertSeparator(actionBefore);
         accountMenu->insertMenu(actionBefore, navLinksMenu);
         foreach (const QJsonValue &value, navLinks) {

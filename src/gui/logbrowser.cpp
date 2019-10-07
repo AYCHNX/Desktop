@@ -67,37 +67,37 @@ LogBrowser::LogBrowser(QWidget *parent)
     mainLayout->addLayout(toolLayout);
 
     // Search input field
-    QLabel *lab = new QLabel(tr("&Search:") + " ");
-    _findTermEdit = new QLineEdit;
+    QLabel *lab = new QLabel(tr("&Search:") + " ", this);
+    _findTermEdit = new QLineEdit(this);
     lab->setBuddy(_findTermEdit);
     toolLayout->addWidget(lab);
     toolLayout->addWidget(_findTermEdit);
 
     // find button
-    QPushButton *findBtn = new QPushButton;
+    QPushButton *findBtn = new QPushButton(this);
     findBtn->setText(tr("&Find"));
     connect(findBtn, &QAbstractButton::clicked, this, &LogBrowser::slotFind);
     toolLayout->addWidget(findBtn);
 
     // stretch
     toolLayout->addStretch(1);
-    _statusLabel = new QLabel;
+    _statusLabel = new QLabel(this);
     toolLayout->addWidget(_statusLabel);
     toolLayout->addStretch(5);
 
     // Debug logging
-    _logDebugCheckBox = new QCheckBox(tr("&Capture debug messages") + " ");
+    _logDebugCheckBox = new QCheckBox(tr("&Capture debug messages") + " ", this);
     connect(_logDebugCheckBox, &QCheckBox::stateChanged, this, &LogBrowser::slotDebugCheckStateChanged);
     toolLayout->addWidget(_logDebugCheckBox);
 
-    QDialogButtonBox *btnbox = new QDialogButtonBox;
+    QDialogButtonBox *btnbox = new QDialogButtonBox(this);
     QPushButton *closeBtn = btnbox->addButton(QDialogButtonBox::Close);
     connect(closeBtn, &QAbstractButton::clicked, this, &QWidget::close);
 
     mainLayout->addWidget(btnbox);
 
     // button to permanently save logs
-    _permanentLogging = new QCheckBox;
+    _permanentLogging = new QCheckBox(this);
     _permanentLogging->setText(tr("Permanently save logs"));
     _permanentLogging->setToolTip(
         tr("When this option is enabled and no other logging is configured, "
@@ -111,14 +111,14 @@ LogBrowser::LogBrowser(QWidget *parent)
     connect(_permanentLogging, &QCheckBox::toggled, this, &LogBrowser::togglePermanentLogging);
 
     // clear button
-    _clearBtn = new QPushButton;
+    _clearBtn = new QPushButton(this);
     _clearBtn->setText(tr("Clear"));
     _clearBtn->setToolTip(tr("Clear the log display."));
     btnbox->addButton(_clearBtn, QDialogButtonBox::ActionRole);
     connect(_clearBtn, &QAbstractButton::clicked, this, &LogBrowser::slotClearLog);
 
     // save Button
-    _saveBtn = new QPushButton;
+    _saveBtn = new QPushButton(this);
     _saveBtn->setText(tr("S&ave"));
     _saveBtn->setToolTip(tr("Save the log file to a file on disk for debugging."));
     btnbox->addButton(_saveBtn, QDialogButtonBox::ActionRole);

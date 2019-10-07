@@ -18,7 +18,7 @@ void PropagateDownloadEncrypted::start() {
 
 void PropagateDownloadEncrypted::checkFolderEncryptedStatus()
 {
-  auto getEncryptedStatus = new GetFolderEncryptStatusJob(_propagator->account(), _info.path());
+  auto getEncryptedStatus = new GetFolderEncryptStatusJob(_propagator->account(), _info.path(), this);
   connect(getEncryptedStatus, &GetFolderEncryptStatusJob::encryptStatusFolderReceived,
           this, &PropagateDownloadEncrypted::folderStatusReceived);
 
@@ -65,7 +65,7 @@ void PropagateDownloadEncrypted::checkFolderId(const QStringList &list)
   const ExtraFolderInfo &folderInfo = job->_folderInfos.value(folderId);
 
   // Now that we have the folder-id we need it's JSON metadata
-  auto metadataJob = new GetMetadataApiJob(_propagator->account(), folderInfo.fileId);
+  auto metadataJob = new GetMetadataApiJob(_propagator->account(), folderInfo.fileId, this);
   connect(metadataJob, &GetMetadataApiJob::jsonReceived,
           this, &PropagateDownloadEncrypted::checkFolderEncryptedMetadata);
 

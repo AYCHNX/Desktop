@@ -638,7 +638,7 @@ void ClientSideEncryption::fetchFromKeyChain() {
                 _account->id()
     );
 
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    auto *job = new ReadPasswordJob(Theme::instance()->appName(), this);
     job->setInsecureFallback(false);
     job->setKey(kck);
     connect(job, &ReadPasswordJob::finished, this, &ClientSideEncryption::publicKeyFetched);
@@ -671,7 +671,7 @@ void ClientSideEncryption::publicKeyFetched(Job *incoming) {
                 _account->id()
     );
 
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    auto *job = new ReadPasswordJob(Theme::instance()->appName(), this);
     job->setInsecureFallback(false);
     job->setKey(kck);
     connect(job, &ReadPasswordJob::finished, this, &ClientSideEncryption::privateKeyFetched);
@@ -711,7 +711,7 @@ void ClientSideEncryption::privateKeyFetched(Job *incoming) {
                 _account->id()
     );
 
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    auto *job = new ReadPasswordJob(Theme::instance()->appName(), this);
     job->setInsecureFallback(false);
     job->setKey(kck);
     connect(job, &ReadPasswordJob::finished, this, &ClientSideEncryption::mnemonicKeyFetched);
@@ -744,7 +744,7 @@ void ClientSideEncryption::writePrivateKey() {
                 _account->id()
     );
 
-    WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+    auto *job = new WritePasswordJob(Theme::instance()->appName(), this);
     job->setInsecureFallback(false);
     job->setKey(kck);
     job->setBinaryData(_privateKey);
@@ -762,7 +762,7 @@ void ClientSideEncryption::writeCertificate() {
                 _account->id()
     );
 
-    WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+    auto *job = new WritePasswordJob(Theme::instance()->appName(), this);
     job->setInsecureFallback(false);
     job->setKey(kck);
     job->setBinaryData(_certificate.toPem());
@@ -780,7 +780,7 @@ void ClientSideEncryption::writeMnemonic() {
                 _account->id()
     );
 
-    WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+    auto *job = new WritePasswordJob(Theme::instance()->appName(), this);
     job->setInsecureFallback(false);
     job->setKey(kck);
     job->setTextData(_mnemonic);
@@ -799,7 +799,7 @@ void ClientSideEncryption::forgetSensitiveData()
     _mnemonic = QString();
 
     auto startDeleteJob = [this](QString user) {
-        DeletePasswordJob *job = new DeletePasswordJob(Theme::instance()->appName());
+        auto *job = new DeletePasswordJob(Theme::instance()->appName(), this);
         job->setInsecureFallback(false);
         job->setKey(AbstractCredentials::keychainKey(_account->url().toString(), user, _account->id()));
         job->start();
@@ -1099,7 +1099,7 @@ void ClientSideEncryption::getPublicKeyFromServer()
 
 void ClientSideEncryption::fetchFolderEncryptedStatus() {
     _refreshingEncryptionStatus = true;
-    auto getEncryptedStatus = new GetFolderEncryptStatusJob(_account, QString());
+    auto getEncryptedStatus = new GetFolderEncryptStatusJob(_account, QString(), this);
     connect(getEncryptedStatus, &GetFolderEncryptStatusJob::encryptStatusReceived,
                     this, &ClientSideEncryption::folderEncryptedStatusFetched);
     connect(getEncryptedStatus, &GetFolderEncryptStatusJob::encryptStatusError,

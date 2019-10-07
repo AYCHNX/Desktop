@@ -328,13 +328,14 @@ void NSISUpdater::showDialog(const UpdateInfo &info)
     QVBoxLayout *layout = new QVBoxLayout(msgBox);
     QHBoxLayout *hlayout = new QHBoxLayout;
     layout->addLayout(hlayout);
+    hlayout->setParent(layout);
 
     msgBox->setWindowTitle(tr("New Version Available"));
 
-    QLabel *ico = new QLabel;
+    QLabel *ico = new QLabel(msgBox);
     ico->setFixedSize(iconSize, iconSize);
     ico->setPixmap(infoIcon.pixmap(iconSize));
-    QLabel *lbl = new QLabel;
+    QLabel *lbl = new QLabel(msgBox);
     QString txt = tr("<p>A new version of the %1 Client is available.</p>"
                      "<p><b>%2</b> is available for download. The installed version is %3.</p>")
                       .arg(Utility::escape(Theme::instance()->appNameGUI()),
@@ -347,7 +348,7 @@ void NSISUpdater::showDialog(const UpdateInfo &info)
     hlayout->addWidget(ico);
     hlayout->addWidget(lbl);
 
-    QDialogButtonBox *bb = new QDialogButtonBox;
+    QDialogButtonBox *bb = new QDialogButtonBox(msgBox);
     bb->setWindowFlags(bb->windowFlags() & ~Qt::WindowContextHelpButtonHint);
     QPushButton *skip = bb->addButton(tr("Skip this version"), QDialogButtonBox::ResetRole);
     QPushButton *reject = bb->addButton(tr("Skip this time"), QDialogButtonBox::AcceptRole);

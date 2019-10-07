@@ -147,7 +147,7 @@ void OwncloudSetupPage::slotLogin()
 {
     _ocWizard->setRegistration(false);
     _ui.login->setMaximumHeight(0);
-    QPropertyAnimation *animation = new QPropertyAnimation(_ui.login, "maximumHeight");
+    QPropertyAnimation *animation = new QPropertyAnimation(_ui.login, "maximumHeight", this);
     animation->setDuration(0);
     animation->setStartValue(500);
     animation->setEndValue(500);

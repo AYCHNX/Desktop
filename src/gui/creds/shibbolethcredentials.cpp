@@ -141,7 +141,7 @@ void ShibbolethCredentials::fetchFromKeychain()
 
 void ShibbolethCredentials::fetchFromKeychainHelper()
 {
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName(),this);
     job->setSettings(ConfigFile::settingsWithGroup(Theme::instance()->appName(), job).release());
     job->setInsecureFallback(false);
     job->setKey(keychainKey(_url.toString(), user(),

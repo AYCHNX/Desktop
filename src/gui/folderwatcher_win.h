@@ -31,8 +31,8 @@ class WatcherThread : public QThread
 {
     Q_OBJECT
 public:
-    WatcherThread(const QString &path)
-        : QThread()
+    WatcherThread(const QString &path, QObject *parent=nullptr)
+        : QThread(parent)
         , _path(path)
         , _directory(0)
         , _resultEvent(0)

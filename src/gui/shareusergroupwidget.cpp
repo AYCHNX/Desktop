@@ -220,7 +220,7 @@ void ShareUserGroupWidget::slotSharesFetched(const QList<QSharedPointer<Share>> 
     }
 
     foreach (const QString &owner, linkOwners) {
-        auto ownerLabel = new QLabel(QString(owner + " shared via link"));
+        auto ownerLabel = new QLabel(QString(owner + " shared via link"), this);
         layout->addWidget(ownerLabel);
         ownerLabel->setVisible(true);
 

@@ -40,7 +40,8 @@ void PropagateUploadEncrypted::start()
       qCDebug(lcPropagateUploadEncrypted) << "Starting to send an encrypted file!";
       QFileInfo info(_item->_file);
       auto getEncryptedStatus = new GetFolderEncryptStatusJob(_propagator->account(),
-                                                           info.path());
+															info.path(),
+															this);
 
       connect(getEncryptedStatus, &GetFolderEncryptStatusJob::encryptStatusFolderReceived,
               this, &PropagateUploadEncrypted::slotFolderEncryptedStatusFetched);
@@ -103,7 +104,7 @@ void PropagateUploadEncrypted::slotFolderLockedSuccessfully(const QByteArray& fi
   _folderToken = token;
   _folderId = fileId;
 
-  auto job = new GetMetadataApiJob(_propagator->account(), _folderId);
+  auto job = new GetMetadataApiJob(_propagator->account(), _folderId, this);
   connect(job, &GetMetadataApiJob::jsonReceived,
           this, &PropagateUploadEncrypted::slotFolderEncryptedMetadataReceived);
   connect(job, &GetMetadataApiJob::error,
@@ -189,17 +190,19 @@ void PropagateUploadEncrypted::slotFolderEncryptedMetadataReceived(const QJsonDo
   qCDebug(lcPropagateUploadEncrypted) << "Metadata created, sending to the server.";
 
   if (statusCode == 404) {
-    auto job = new StoreMetaDataApiJob(_propagator->account(),
-                                       _folderId,
-                                       _metadata->encryptedMetadata());
+    auto job = new StoreMetaDataApiJob(	_propagator->account(),
+										_folderId,
+										_metadata->encryptedMetadata(),
+										this);
     connect(job, &StoreMetaDataApiJob::success, this, &PropagateUploadEncrypted::slotUpdateMetadataSuccess);
     connect(job, &StoreMetaDataApiJob::error, this, &PropagateUploadEncrypted::slotUpdateMetadataError);
     job->start();
   } else {
     auto job = new UpdateMetadataApiJob(_propagator->account(),
-                                      _folderId,
-                                      _metadata->encryptedMetadata(),
-                                      _folderToken);
+										_folderId,
+										_metadata->encryptedMetadata(),
+										_folderToken,
+										this);
 
     connect(job, &UpdateMetadataApiJob::success, this, &PropagateUploadEncrypted::slotUpdateMetadataSuccess);
     connect(job, &UpdateMetadataApiJob::error, this, &PropagateUploadEncrypted::slotUpdateMetadataError);

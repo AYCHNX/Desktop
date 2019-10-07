@@ -69,7 +69,7 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
 
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     _ui->setupUi(this);
-    _toolBar = new QToolBar;
+    _toolBar = new QToolBar(this);
     _toolBar->setIconSize(QSize(32, 32));
     _toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     layout()->setMenuBar(_toolBar);
@@ -97,7 +97,7 @@ SettingsDialog::SettingsDialog(ownCloudGui *gui, QWidget *parent)
     _toolBar->addAction(_actionBefore);
 
     // Adds space between users + activities and general + network actions
-    QWidget* spacer = new QWidget();
+    QWidget* spacer = new QWidget(this);
     spacer->setMinimumWidth(10);
     spacer->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
     _toolBar->addWidget(spacer);

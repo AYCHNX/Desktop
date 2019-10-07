@@ -71,7 +71,7 @@ QtSingleApplication::QtSingleApplication(const QString &appId, int &argc, char *
             qWarning() << "Failed to initialize instances shared memory: "
                        << instances->errorString();
             delete instances;
-            instances = 0;
+            instances = nullptr;
             return;
         }
     }

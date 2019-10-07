@@ -153,9 +153,9 @@ public:
     void resizeEvent(QResizeEvent *event) override;
 
 private:
-    FolderWizardLocalPath *_folderWizardSourcePage;
-    FolderWizardRemotePath *_folderWizardTargetPage;
-    FolderWizardSelectiveSync *_folderWizardSelectiveSyncPage;
+    std::unique_ptr<FolderWizardLocalPath> _folderWizardSourcePage;
+    std::unique_ptr<FolderWizardRemotePath> _folderWizardTargetPage;
+    std::unique_ptr<FolderWizardSelectiveSync> _folderWizardSelectiveSyncPage;
 };
 
 

@@ -223,7 +223,7 @@ void WebFlowCredentials::persist() {
 
     // write cert if there is one
     if (!_clientSslCertificate.isNull()) {
-        WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+        WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName(), this);
         addSettingsToJob(_account, job);
         job->setInsecureFallback(false);
         connect(job, &Job::finished, this, &WebFlowCredentials::slotWriteClientCertPEMJobDone);
@@ -240,7 +240,7 @@ void WebFlowCredentials::slotWriteClientCertPEMJobDone()
 {
     // write ssl key if there is one
     if (!_clientSslKey.isNull()) {
-        WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+        WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName(), this);
         addSettingsToJob(_account, job);
         job->setInsecureFallback(false);
         connect(job, &Job::finished, this, &WebFlowCredentials::slotWriteClientKeyPEMJobDone);
@@ -272,7 +272,7 @@ void WebFlowCredentials::writeSingleClientCaCertPEM()
             return;
         }
 
-        WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+        WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName(), this);
         addSettingsToJob(_account, job);
         job->setInsecureFallback(false);
         connect(job, &Job::finished, this, &WebFlowCredentials::slotWriteClientCaCertsPEMJobDone);
@@ -318,7 +318,7 @@ void WebFlowCredentials::slotWriteClientCaCertsPEMJobDone(QKeychain::Job *incomi
     }
 
     // done storing ca certs, time for the password
-    WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+    WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName(), this);
     addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     connect(job, &Job::finished, this, &WebFlowCredentials::slotWriteJobDone);
@@ -364,7 +364,7 @@ void WebFlowCredentials::forgetSensitiveData() {
         return;
     }
 
-    DeletePasswordJob *job = new DeletePasswordJob(Theme::instance()->appName());
+    DeletePasswordJob *job = new DeletePasswordJob(Theme::instance()->appName(), this);
     job->setInsecureFallback(false);
     job->setKey(kck);
     job->start();
@@ -426,7 +426,7 @@ void WebFlowCredentials::fetchFromKeychainHelper() {
         _user + clientCertificatePEMC,
         _keychainMigration ? QString() : _account->id());
 
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName(), this);
     addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     job->setKey(kck);
@@ -466,7 +466,7 @@ void WebFlowCredentials::slotReadClientCertPEMJobDone(QKeychain::Job *incomingJo
         _user + clientKeyPEMC,
         _keychainMigration ? QString() : _account->id());
 
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName(), this);
     addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     job->setKey(kck);
@@ -510,7 +510,7 @@ void WebFlowCredentials::readSingleClientCaCertPEM()
             _user + clientCaCertificatePEMC + QString::number(_clientSslCaCertificates.count()),
             _keychainMigration ? QString() : _account->id());
 
-        ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+        ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName(), this);
         addSettingsToJob(_account, job);
         job->setInsecureFallback(false);
         job->setKey(kck);
@@ -551,7 +551,7 @@ void WebFlowCredentials::slotReadClientCaCertsPEMJobDone(QKeychain::Job *incomin
         _user,
         _keychainMigration ? QString() : _account->id());
 
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName(), this);
     addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     job->setKey(kck);
@@ -594,7 +594,7 @@ void WebFlowCredentials::slotReadPasswordJobDone(Job *incomingJob) {
 
 void WebFlowCredentials::deleteKeychainEntries(bool oldKeychainEntries) {
     auto startDeleteJob = [this, oldKeychainEntries](QString user) {
-        DeletePasswordJob *job = new DeletePasswordJob(Theme::instance()->appName());
+        DeletePasswordJob *job = new DeletePasswordJob(Theme::instance()->appName(), this);
         addSettingsToJob(_account, job);
         job->setInsecureFallback(true);
         job->setKey(keychainKey(_account->url().toString(),

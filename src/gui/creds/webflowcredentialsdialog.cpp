@@ -26,18 +26,18 @@ WebFlowCredentialsDialog::WebFlowCredentialsDialog(Account *account, bool useFlo
     _layout->addWidget(_infoLabel);
 
     if (_useFlow2) {
-        _flow2AuthWidget = new Flow2AuthWidget(account);
+        _flow2AuthWidget = new Flow2AuthWidget(account, this);
         _layout->addWidget(_flow2AuthWidget);
 
         connect(_flow2AuthWidget, &Flow2AuthWidget::urlCatched, this, &WebFlowCredentialsDialog::urlCatched);
     } else {
-        _webView = new WebView();
+        _webView = new WebView(this);
         _layout->addWidget(_webView);
 
         connect(_webView, &WebView::urlCatched, this, &WebFlowCredentialsDialog::urlCatched);
     }
 
-    _errorLabel = new QLabel();
+    _errorLabel = new QLabel(this);
     _errorLabel->hide();
     _layout->addWidget(_errorLabel);
 
@@ -53,10 +53,13 @@ void WebFlowCredentialsDialog::closeEvent(QCloseEvent* e) {
         // Force calling WebView::~WebView() earlier so that _profile and _page are
         // deleted in the correct order.
         delete _webView;
+        _webView = nullptr;
     }
 
-    if (_flow2AuthWidget)
+    if (_flow2AuthWidget) {
         delete _flow2AuthWidget;
+        _flow2AuthWidget = nullptr;
+    }
 }
 
 void WebFlowCredentialsDialog::setUrl(const QUrl &url) {

@@ -113,7 +113,7 @@ ShareDialog::ShareDialog(QPointer<AccountState> accountState,
         job->start();
     }
 
-    auto job = new PropfindJob(accountState->account(), _sharePath);
+    auto job = new PropfindJob(accountState->account(), _sharePath, this);
     job->setProperties(
         QList<QByteArray>()
         << "http://open-collaboration-services.org/ns:share-permissions"

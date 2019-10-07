@@ -195,7 +195,7 @@ void HttpCredentials::fetchFromKeychainHelper()
         _user + clientCertificatePEMC,
         _keychainMigration ? QString() : _account->id());
 
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    auto *job = new ReadPasswordJob(Theme::instance()->appName(), this);
     addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     job->setKey(kck);
@@ -206,7 +206,7 @@ void HttpCredentials::fetchFromKeychainHelper()
 void HttpCredentials::deleteOldKeychainEntries()
 {
     auto startDeleteJob = [this](QString user) {
-        DeletePasswordJob *job = new DeletePasswordJob(Theme::instance()->appName());
+        auto *job = new DeletePasswordJob(Theme::instance()->appName(), this);
         addSettingsToJob(_account, job);
         job->setInsecureFallback(true);
         job->setKey(keychainKey(_account->url().toString(), user, QString()));
@@ -250,7 +250,7 @@ void HttpCredentials::slotReadClientCertPEMJobDone(QKeychain::Job *incoming)
         _user + clientKeyPEMC,
         _keychainMigration ? QString() : _account->id());
 
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    auto *job = new ReadPasswordJob(Theme::instance()->appName(), this);
     addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     job->setKey(kck);
@@ -285,7 +285,7 @@ void HttpCredentials::slotReadClientKeyPEMJobDone(QKeychain::Job *incoming)
         _user,
         _keychainMigration ? QString() : _account->id());
 
-    ReadPasswordJob *job = new ReadPasswordJob(Theme::instance()->appName());
+    auto *job = new ReadPasswordJob(Theme::instance()->appName(), this);
     addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     job->setKey(kck);
@@ -368,7 +368,7 @@ bool HttpCredentials::refreshAccessToken()
         Theme::instance()->oauthClientId(), Theme::instance()->oauthClientSecret());
     req.setRawHeader("Authorization", "Basic " + basicAuth.toUtf8().toBase64());
 
-    auto requestBody = new QBuffer;
+    auto requestBody = new QBuffer(this);
     QUrlQuery arguments(QString("grant_type=refresh_token&refresh_token=%1").arg(_refreshToken));
     requestBody->setData(arguments.query(QUrl::FullyEncoded).toLatin1());
 
@@ -425,7 +425,7 @@ void HttpCredentials::invalidateToken()
         return;
     }
 
-    DeletePasswordJob *job = new DeletePasswordJob(Theme::instance()->appName());
+    auto *job = new DeletePasswordJob(Theme::instance()->appName(), this);
     addSettingsToJob(_account, job);
     job->setInsecureFallback(true);
     job->setKey(kck);
@@ -461,7 +461,7 @@ void HttpCredentials::persist()
 
     // write cert if there is one
     if (!_clientSslCertificate.isNull()) {
-        WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+        auto *job = new WritePasswordJob(Theme::instance()->appName(), this);
         addSettingsToJob(_account, job);
         job->setInsecureFallback(false);
         connect(job, &Job::finished, this, &HttpCredentials::slotWriteClientCertPEMJobDone);
@@ -477,7 +477,7 @@ void HttpCredentials::slotWriteClientCertPEMJobDone()
 {
     // write ssl key if there is one
     if (!_clientSslKey.isNull()) {
-        WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+        auto *job = new WritePasswordJob(Theme::instance()->appName(), this);
         addSettingsToJob(_account, job);
         job->setInsecureFallback(false);
         connect(job, &Job::finished, this, &HttpCredentials::slotWriteClientKeyPEMJobDone);
@@ -491,7 +491,7 @@ void HttpCredentials::slotWriteClientCertPEMJobDone()
 
 void HttpCredentials::slotWriteClientKeyPEMJobDone()
 {
-    WritePasswordJob *job = new WritePasswordJob(Theme::instance()->appName());
+    auto *job = new WritePasswordJob(Theme::instance()->appName(), this);
     addSettingsToJob(_account, job);
     job->setInsecureFallback(false);
     connect(job, &Job::finished, this, &HttpCredentials::slotWriteJobDone);
