@@ -90,7 +90,6 @@ SettingsDialogMac::SettingsDialogMac(ownCloudGui *gui, QWidget *parent)
     setObjectName("SettingsMac"); // required as group for saveGeometry call
 
     setWindowTitle(tr("%1").arg(Theme::instance()->appNameGUI()));
-
     connect(AccountManager::instance(), &AccountManager::accountAdded,
         this, &SettingsDialogMac::accountAdded);
     connect(AccountManager::instance(), &AccountManager::accountRemoved,

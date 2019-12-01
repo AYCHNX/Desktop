@@ -104,6 +104,7 @@ Q_SIGNALS:
     void accountAdded(AccountState *account);
     void accountRemoved(AccountState *account);
     void removeAccountFolders(AccountState *account);
+	void mountVirtualDriveForAccount(AccountState *account);
 
 private:
     AccountManager() {}
