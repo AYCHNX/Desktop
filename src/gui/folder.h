@@ -29,7 +29,6 @@
 #include <QUuid>
 #include <set>
 #include <chrono>
-#include <QThread>
 
 class QThread;
 class QSettings;
@@ -232,12 +231,12 @@ public:
       */
     void setSaveBackwardsCompatible(bool save);
 
-//    /**
-//     * Sets up this folder's folderWatcher if possible.
-//     *
-//     * May be called several times.
-//     */
-//    void registerFolderWatcher();
+    /**
+     * Sets up this folder's folderWatcher if possible.
+     *
+     * May be called several times.
+     */
+    void registerFolderWatcher();
 
 signals:
     void syncStateChange();
@@ -267,19 +266,11 @@ public slots:
 
 
     /**
-      * Starts a sync operation using _localDiscoveryPaths
+      * Starts a sync operation
       *
       * If the list of changed files is known, it is passed.
       */
-    void startSync();
-
-    /**
-      * Set local files and actions when it is known - triggered by FUSE operations
-      *
-      */
-    void updateLocalFileTree(const QString &path, csync_instructions_e instruction);
-
-	void updateFuseCreatedFile(const QString & path, bool is_fuse_created_files);
+    void startSync(const QStringList &pathList = QStringList());
 
     int slotDiscardDownloadProgress();
     int downloadInfoCount();
@@ -291,7 +282,7 @@ public slots:
        * changes. Needs to check whether this change should trigger a new
        * sync run to be scheduled.
        */
-    //void slotWatchedPathChanged(const QString &path);
+    void slotWatchedPathChanged(const QString &path);
 
 private slots:
     void slotSyncStarted();
@@ -322,7 +313,7 @@ private slots:
     void slotScheduleThisFolder();
 
     /** Ensures that the next sync performs a full local discovery. */
-    //void slotNextSyncFullLocalDiscovery();
+    void slotNextSyncFullLocalDiscovery();
 
     /** Adjust sync result based on conflict data from IssuesWidget.
      *
@@ -371,7 +362,7 @@ private:
     QString _lastEtag;
     QElapsedTimer _timeSinceLastSyncDone;
     QElapsedTimer _timeSinceLastSyncStart;
-    //QElapsedTimer _timeSinceLastFullLocalDiscovery;
+    QElapsedTimer _timeSinceLastFullLocalDiscovery;
     std::chrono::milliseconds _lastSyncDuration;
 
     /// The number of syncs that failed in a row.
@@ -398,25 +389,20 @@ private:
      */
     bool _saveBackwardsCompatible;
 
-//    /**
-//     * Watches this folder's local directory for changes.
-//     *
-//     * Created by registerFolderWatcher(), triggers slotWatchedPathChanged()
-//     */
-//    QScopedPointer<FolderWatcher> _folderWatcher;
-
-//    /**
-//     * The paths that should be checked by the next local discovery.
-//     *
-//     * Mostly a collection of files the filewatchers have reported as touched.
-//     * Also includes files that have had errors in the last sync run.
-//     */
-//    std::set<QByteArray> _localDiscoveryPaths;
+    /**
+     * Watches this folder's local directory for changes.
+     *
+     * Created by registerFolderWatcher(), triggers slotWatchedPathChanged()
+     */
+    QScopedPointer<FolderWatcher> _folderWatcher;
 
     /**
-     * The known local paths and instructions that should be checked by the next local discovery.
+     * The paths that should be checked by the next local discovery.
+     *
+     * Mostly a collection of files the filewatchers have reported as touched.
+     * Also includes files that have had errors in the last sync run.
      */
-    //std::map<QByteArray, csync_instructions_e> _fuseDiscoveryPaths;
+    std::set<QByteArray> _localDiscoveryPaths;
 
     /**
      * The paths that the current sync run used for local discovery.
@@ -424,7 +410,7 @@ private:
      * For failing syncs, this list will be merged into _localDiscoveryPaths
      * again when the sync is done to make sure everything is retried.
      */
-    //std::set<QByteArray> _previousLocalDiscoveryPaths;
+    std::set<QByteArray> _previousLocalDiscoveryPaths;
 };
 }
 

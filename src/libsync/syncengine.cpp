@@ -100,7 +100,7 @@ SyncEngine::SyncEngine(AccountPtr account, const QString &localPath,
     _clearTouchedFilesTimer.setInterval(30 * 1000);
     connect(&_clearTouchedFilesTimer, &QTimer::timeout, this, &SyncEngine::slotClearTouchedFiles);
 
-    _thread.setObjectName("Discovery_Thread");
+    _thread.setObjectName("SyncEngine_Thread");
 }
 
 SyncEngine::~SyncEngine()
@@ -433,16 +433,15 @@ int SyncEngine::treewalkFile(csync_file_stat_t *file, csync_file_stat_t *other, 
         item->_size = file->size;
         item->_checksumHeader = file->checksumHeader;
         item->_type = file->type;
-	}
-    //} else {
-    //    if (instruction != CSYNC_INSTRUCTION_NONE) {
-    //        qCWarning(lcEngine) << "ERROR: Instruction" << item->_instruction << "vs" << instruction << "for" << fileUtf8;
-    //        ASSERT(false);
-    //        // Set instruction to NONE for safety.
-    //        file->instruction = item->_instruction = instruction = CSYNC_INSTRUCTION_NONE;
-    //        return -1; // should lead to treewalk error
-    //    }
-    //}
+    } else {
+        if (instruction != CSYNC_INSTRUCTION_NONE) {
+            qCWarning(lcEngine) << "ERROR: Instruction" << item->_instruction << "vs" << instruction << "for" << fileUtf8;
+            ASSERT(false);
+            // Set instruction to NONE for safety.
+            file->instruction = item->_instruction = instruction = CSYNC_INSTRUCTION_NONE;
+            return -1; // should lead to treewalk error
+        }
+    }
 
     if (!file->file_id.isEmpty()) {
         item->_fileId = file->file_id;
@@ -648,8 +647,8 @@ int SyncEngine::treewalkFile(csync_file_stat_t *file, csync_file_stat_t *other, 
                 _hasNoneFiles = true;
             }
 
-            // Technically we're done with this item if it is not fuse 0 byte file
-			return re;
+            // Technically we're done with this item.
+            return re;
         }
         break;
     case CSYNC_INSTRUCTION_RENAME:
@@ -712,7 +711,6 @@ int SyncEngine::treewalkFile(csync_file_stat_t *file, csync_file_stat_t *other, 
 
     slotNewItem(item);
     _syncItemMap.insert(key, item);
-
     return re;
 }
 
@@ -755,6 +753,7 @@ void SyncEngine::csyncError(const QString &message)
     emit syncError(message, ErrorCategory::Normal);
 }
 
+
 void SyncEngine::startSync()
 {
     if (_journal->exists()) {
@@ -771,9 +770,7 @@ void SyncEngine::startSync()
     }
 
     if (s_anySyncRunning || _syncRunning) {
-        csyncError("Restarting sync.");
-//        finalize(false);
-//        startSync();
+        ASSERT(false);
         return;
     }
 
@@ -841,16 +838,10 @@ void SyncEngine::startSync()
         // database creation error!
     }
 
-	// TODO
     // Functionality like selective sync might have set up etag storage
     // filtering via avoidReadFromDbOnNextSync(). This *is* the next sync, so
     // undo the filter to allow this sync to retrieve and store the correct etags.
     _journal->clearEtagStorageFilter();
-
-    _csync_ctx->fuseEnabled = false;
-    if(_csync_ctx->local.files.size() > 0){
-        _csync_ctx->fuseEnabled = true;
-    }
 
     _csync_ctx->upload_conflict_files = _account->capabilities().uploadConflictFiles();
     _excludedFiles->setExcludeConflictFiles(!_account->capabilities().uploadConflictFiles());
@@ -893,7 +884,7 @@ void SyncEngine::startSync()
     _thread.start(QThread::LowPriority);
 
     _discoveryMainThread = new DiscoveryMainThread(account());
-    //_discoveryMainThread->setParent(this);
+    _discoveryMainThread->setParent(this);
     connect(this, &SyncEngine::finished, _discoveryMainThread.data(), &QObject::deleteLater);
     qCInfo(lcEngine) << "Server" << account()->serverVersion()
                      << (account()->isHttp2Supported() ? "Using HTTP/2" : "");
@@ -923,6 +914,7 @@ void SyncEngine::startSync()
 
     connect(discoveryJob, &DiscoveryJob::newBigFolder,
         this, &SyncEngine::newBigFolder);
+
 
     // This is used for the DiscoveryJob to be able to request the main thread/
     // to read in directory contents.
@@ -1130,16 +1122,9 @@ void SyncEngine::slotDiscoveryJobFinished(int discoveryResult)
 
     // Re-init the csync context to free memory
     _csync_ctx->reinitialize();
-    //_localDiscoveryPaths.clear();
+    _localDiscoveryPaths.clear();
 
     // To announce the beginning of the sync
-	qDebug() << "## ABOUT TO PROPAGATE #######";
-    for (SyncFileItemVector::iterator it = syncItems.begin(); it != syncItems.end(); ++it) {
-        qDebug() << "file: " << (*it)->_file;
-		qDebug() << "instruction: " << (*it)->_instruction;
-		qDebug() << "direction: " << (*it)->_direction;
-    }
-	qDebug() << "##############";
     emit aboutToPropagate(syncItems);
 
     // it's important to do this before ProgressInfo::start(), to announce start of new sync
@@ -1279,7 +1264,7 @@ void SyncEngine::finalize(bool success)
     _temporarilyUnavailablePaths.clear();
     _renamedFolders.clear();
     _uniqueErrors.clear();
-    //_localDiscoveryPaths.clear();
+    _localDiscoveryPaths.clear();
     _localDiscoveryStyle = LocalDiscoveryStyle::FilesystemOnly;
 
     _clearTouchedFilesTimer.start();
@@ -1685,67 +1670,10 @@ AccountPtr SyncEngine::account() const
     return _account;
 }
 
-int SyncEngine::localTreeSize(){
-    return !_csync_ctx.isNull()? static_cast<int>(_csync_ctx->local.files.size()) : 0;
-}
-
-void SyncEngine::updateLocalFileTree(const QString &path, csync_instructions_e instruction){
-    if(!path.isEmpty()){
-        if(!_csync_ctx.isNull()){
-            _csync_ctx->fuseEnabled = true;
-
-			QString fullPath(QFileInfo(_localPath).absolutePath());
-            fullPath.append("/");
-            fullPath.append(path);
-
-            QString absolutePath(QFileInfo(fullPath).absolutePath());
-            if (absolutePath.endsWith("/"))
-                absolutePath.chop(1);
-
-            QString relativePath(path);
-            QString fileName(QFileInfo(path).fileName());
-
-			qDebug() << "## UPDATE LOCAL FILE TREE ######################################################";
-			qDebug() << "relativePath: " << relativePath;
-            qDebug() << "absolutePath: " << absolutePath;
-            qDebug() << "fileName: " << fileName;
-            qDebug() << "######################################################";
-
-            if (cysnc_update_file(_csync_ctx.data(), absolutePath.toLatin1(), relativePath.toLatin1(), fileName.toLatin1(), instruction)) {
-                qDebug() << "## ADDED FILE TO TREE ######################################################" << relativePath << _csync_ctx->local.files.findFile(relativePath.toLatin1())->instruction;
-            }
-        }
-    }
-}
-
-void SyncEngine::updateFuseCreatedFile(const QString &path, bool is_fuse_created_file){
-    if(!path.isEmpty()){
-        if(!_csync_ctx.isNull()){
-            _csync_ctx->fuseEnabled = true;
-
-			QString fullPath(QFileInfo(_localPath).absolutePath());
-            fullPath.append("/");
-            fullPath.append(path);
-
-            QString absolutePath(QFileInfo(fullPath).absolutePath());
-            if (absolutePath.endsWith("/"))
-                absolutePath.chop(1);
-
-            QString relativePath(path);
-            QString fileName(QFileInfo(path).fileName());
-
-            if (cysnc_update_is_fuse_created_file(_csync_ctx.data(), relativePath.toLatin1(), is_fuse_created_file)) {
-                qDebug() << "## UPDATED cysnc_update_is_fuse_created_file ######################################################" << relativePath << _csync_ctx->local.files.findFile(relativePath.toLatin1())->is_fuse_created_file;
-            }
-        }
-    }
-}
-
 void SyncEngine::setLocalDiscoveryOptions(LocalDiscoveryStyle style, std::set<QByteArray> paths)
 {
-    Q_UNUSED(paths);
     _localDiscoveryStyle = style;
-    //_localDiscoveryPaths = std::move(paths);
+    _localDiscoveryPaths = std::move(paths);
 }
 
 bool SyncEngine::shouldDiscoverLocally(const QByteArray &path) const
@@ -1753,25 +1681,22 @@ bool SyncEngine::shouldDiscoverLocally(const QByteArray &path) const
     if (_localDiscoveryStyle == LocalDiscoveryStyle::FilesystemOnly)
         return true;
 
-    if (_localDiscoveryStyle == LocalDiscoveryStyle::FUSEFilesystem)
+    auto it = _localDiscoveryPaths.lower_bound(path);
+    if (it == _localDiscoveryPaths.end() || !it->startsWith(path))
         return false;
 
-//    auto it = _localDiscoveryPaths.lower_bound(path);
-//    if (it == _localDiscoveryPaths.end() || !it->startsWith(path))
-//        return false;
-
     // maybe an exact match or an empty path?
-//    if (it->size() == path.size() || path.isEmpty())
-//        return true;
+    if (it->size() == path.size() || path.isEmpty())
+        return true;
 
-//    // check for a prefix + / match
-//    forever {
-//        if (it->size() > path.size() && it->at(path.size()) == '/')
-//            return true;
-//        ++it;
-//        if (it == _localDiscoveryPaths.end() || !it->startsWith(path))
-//            return false;
-//    }
+    // check for a prefix + / match
+    forever {
+        if (it->size() > path.size() && it->at(path.size()) == '/')
+            return true;
+        ++it;
+        if (it == _localDiscoveryPaths.end() || !it->startsWith(path))
+            return false;
+    }
     return false;
 }
 

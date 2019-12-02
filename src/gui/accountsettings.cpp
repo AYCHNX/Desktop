@@ -35,10 +35,7 @@
 #include "filesystem.h"
 #include "clientsideencryptionjobs.h"
 #include "syncresult.h"
-
-#ifdef Q_OS_WIN
-#include "vfs_windows.h"
-#endif
+#include "ignorelisttablewidget.h"
 
 #include <math.h>
 
@@ -58,13 +55,16 @@
 #include <qstringlistmodel.h>
 #include <qpropertyanimation.h>
 
-#include "ignorelisttablewidget.h"
-
 #include "account.h"
 
 #ifdef Q_OS_MAC
 #include "settingsdialogmac.h"
 #endif
+
+#if defined(Q_OS_WIN)
+#include "vfs_windows.h"
+#endif
+
 
 namespace OCC {
 
@@ -688,12 +688,9 @@ void AccountSettings::slotFolderListClicked(const QModelIndex &indx)
 {
     if (indx.data(FolderStatusDelegate::AddButton).toBool()) {
         // "Add Folder Sync Connection"
-// TODO: FUSE - only one folder is allowed
-//        if (indx.flags() & Qt::ItemIsEnabled) {
-//            slotAddFolder();
-//        } else {
-
-        if (!indx.flags() & !Qt::ItemIsEnabled){
+        if (indx.flags() & Qt::ItemIsEnabled) {
+            slotAddFolder();
+        } else {
             QToolTip::showText(
                 QCursor::pos(),
                 _model->data(indx, Qt::ToolTipRole).toString(),
@@ -722,71 +719,70 @@ void AccountSettings::slotFolderListClicked(const QModelIndex &indx)
     }
 }
 
-// TODO: FUSE - only one folder is allowed
 void AccountSettings::slotAddFolder()
 {
-//    FolderMan *folderMan = FolderMan::instance();
-//    folderMan->setSyncEnabled(false); // do not start more syncs.
+    FolderMan *folderMan = FolderMan::instance();
+    folderMan->setSyncEnabled(false); // do not start more syncs.
 
-//    FolderWizard *folderWizard = new FolderWizard(_accountState->account(), this);
+    FolderWizard *folderWizard = new FolderWizard(_accountState->account(), this);
 
-//    connect(folderWizard, &QDialog::accepted, this, &AccountSettings::slotFolderWizardAccepted);
-//    connect(folderWizard, &QDialog::rejected, this, &AccountSettings::slotFolderWizardRejected);
-//    folderWizard->open();
+    connect(folderWizard, &QDialog::accepted, this, &AccountSettings::slotFolderWizardAccepted);
+    connect(folderWizard, &QDialog::rejected, this, &AccountSettings::slotFolderWizardRejected);
+    folderWizard->open();
 }
 
-// TODO: FUSE - only one folder is allowed
+
 void AccountSettings::slotFolderWizardAccepted()
 {
-//    FolderWizard *folderWizard = qobject_cast<FolderWizard *>(sender());
-//    FolderMan *folderMan = FolderMan::instance();
+    FolderWizard *folderWizard = qobject_cast<FolderWizard *>(sender());
+    FolderMan *folderMan = FolderMan::instance();
 
-//    qCInfo(lcAccountSettings) << "Folder wizard completed";
+    qCInfo(lcAccountSettings) << "Folder wizard completed";
 
-//    FolderDefinition definition;
-//    definition.localPath = FolderDefinition::prepareLocalPath(
-//        folderWizard->field(QLatin1String("sourceFolder")).toString());
-//    definition.targetPath = FolderDefinition::prepareTargetPath(
-//        folderWizard->property("targetPath").toString());
+    FolderDefinition definition;
+    definition.localPath = FolderDefinition::prepareLocalPath(
+        folderWizard->field(QLatin1String("sourceFolder")).toString());
+    definition.targetPath = FolderDefinition::prepareTargetPath(
+        folderWizard->property("targetPath").toString());
 
-//    {
-//        QDir dir(definition.localPath);
-//        if (!dir.exists()) {
-//            qCInfo(lcAccountSettings) << "Creating folder" << definition.localPath;
-//            if (!dir.mkpath(".")) {
-//                QMessageBox::warning(this, tr("Folder creation failed"),
-//                    tr("<p>Could not create local folder <i>%1</i>.")
-//                        .arg(QDir::toNativeSeparators(definition.localPath)));
-//                return;
-//            }
-//        }
-//        FileSystem::setFolderMinimumPermissions(definition.localPath);
-//        Utility::setupFavLink(definition.localPath);
-//    }
+    {
+        QDir dir(definition.localPath);
+        if (!dir.exists()) {
+            qCInfo(lcAccountSettings) << "Creating folder" << definition.localPath;
+            if (!dir.mkpath(".")) {
+                QMessageBox::warning(this, tr("Folder creation failed"),
+                    tr("<p>Could not create local folder <i>%1</i>.")
+                        .arg(QDir::toNativeSeparators(definition.localPath)));
+                return;
+            }
+        }
+        FileSystem::setFolderMinimumPermissions(definition.localPath);
+        Utility::setupFavLink(definition.localPath);
+    }
 
-//    /* take the value from the definition of already existing folders. All folders have
-//     * the same setting so far.
-//     * The default is to not sync hidden files
-//     */
-//    definition.ignoreHiddenFiles = folderMan->ignoreHiddenFiles();
+    /* take the value from the definition of already existing folders. All folders have
+     * the same setting so far.
+     * The default is to sync hidden files
+     */
+    definition.ignoreHiddenFiles = folderMan->ignoreHiddenFiles();
 
-//    if (folderMan->navigationPaneHelper().showInExplorerNavigationPane())
-//        definition.navigationPaneClsid = QUuid::createUuid();
+    if (folderMan->navigationPaneHelper().showInExplorerNavigationPane())
+        definition.navigationPaneClsid = QUuid::createUuid();
 
-//    auto selectiveSyncBlackList = folderWizard->property("selectiveSyncBlackList").toStringList();
+    auto selectiveSyncBlackList = folderWizard->property("selectiveSyncBlackList").toStringList();
 
-//    folderMan->setSyncEnabled(true);
+    folderMan->setSyncEnabled(true);
 
-//    Folder *f = folderMan->addFolder(_accountState, definition);
-//    if (f) {
-//        f->journalDb()->setSelectiveSyncList(SyncJournalDb::SelectiveSyncBlackList, selectiveSyncBlackList);
+    Folder *f = folderMan->addFolder(_accountState, definition);
+    if (f) {
+        f->journalDb()->setSelectiveSyncList(SyncJournalDb::SelectiveSyncBlackList, selectiveSyncBlackList);
 
-//        // The user already accepted the selective sync dialog. everything is in the white list
-//        f->journalDb()->setSelectiveSyncList(SyncJournalDb::SelectiveSyncWhiteList,
-//            QStringList() << QLatin1String("/"));
-//        folderMan->scheduleAllFolders();
-//        emit folderChanged();
-//    }
+        // The user already accepted the selective sync dialog. everything is in the white list
+        f->journalDb()->setSelectiveSyncList(SyncJournalDb::SelectiveSyncWhiteList,
+            QStringList() << QLatin1String("/"));
+        folderMan->scheduleAllFolders();
+        emit folderChanged();
+    }
 }
 
 void AccountSettings::slotFolderWizardRejected()
@@ -823,7 +819,7 @@ void AccountSettings::slotRemoveCurrentFolder()
             return;
         }
 
-        folderMan->removeFolder();
+        folderMan->removeFolder(folder);
         _model->removeRow(row);
 
         // single folder fix to show add-button and hide remove-button
@@ -920,7 +916,7 @@ void AccountSettings::slotEnableCurrentFolder()
         if (currentlyPaused)
             _wasDisabledBefore = true;
 
-        _model->slotUpdateFolderState();
+        _model->slotUpdateFolderState(f);
     }
 }
 
@@ -928,7 +924,7 @@ void AccountSettings::slotScheduleCurrentFolder()
 {
     FolderMan *folderMan = FolderMan::instance();
     if (auto folder = folderMan->folder(selectedFolderAlias())) {
-        folderMan->scheduleFolder();
+        folderMan->scheduleFolder(folder);
     }
 }
 
@@ -937,7 +933,7 @@ void AccountSettings::slotScheduleCurrentFolderForceRemoteDiscovery()
     FolderMan *folderMan = FolderMan::instance();
     if (auto folder = folderMan->folder(selectedFolderAlias())) {
         folder->journalDb()->forceRemoteDiscoveryNextSync();
-        folderMan->scheduleFolder();
+        folderMan->scheduleFolder(folder);
     }
 }
 
@@ -948,11 +944,11 @@ void AccountSettings::slotForceSyncCurrentFolder()
         // Terminate and reschedule any running sync
         if (Folder *current = folderMan->currentSyncFolder()) {
             folderMan->terminateSyncProcess();
-            folderMan->scheduleFolder();
+            folderMan->scheduleFolder(current);
         }
 
         // Insert the selected folder at the front of the queue
-        folderMan->scheduleFolderNext();
+        folderMan->scheduleFolderNext(selectedFolder);
     }
 }
 
@@ -1002,7 +998,7 @@ void AccountSettings::slotAccountStateChanged()
         safeUrl.setPassword(QString()); // Remove the password from the URL to avoid showing it in the UI
         FolderMan *folderMan = FolderMan::instance();
         foreach (Folder *folder, folderMan->map().values()) {
-            _model->slotUpdateFolderState();
+            _model->slotUpdateFolderState(folder);
         }
 
         QString server = QString::fromLatin1("<a href=\"%1\">%2</a>")
@@ -1105,12 +1101,12 @@ void AccountSettings::slotLinkActivated(const QString &link)
 
         // Make sure the folder itself is expanded
         Folder *f = FolderMan::instance()->folder(alias);
-        QModelIndex folderIndx = _model->indexForPath(QString());
+        QModelIndex folderIndx = _model->indexForPath(f, QString());
         if (!ui->_folderList->isExpanded(folderIndx)) {
             ui->_folderList->setExpanded(folderIndx, true);
         }
 
-        QModelIndex indx = _model->indexForPath(myFolder);
+        QModelIndex indx = _model->indexForPath(f, myFolder);
         if (indx.isValid()) {
             // make sure all the parents are expanded
             for (auto i = indx.parent(); i.isValid(); i = i.parent()) {
@@ -1156,7 +1152,7 @@ void AccountSettings::refreshSelectiveSyncStatus()
             if (myFolder.endsWith('/')) {
                 myFolder.chop(1);
             }
-            QModelIndex theIndx = _model->indexForPath(myFolder);
+            QModelIndex theIndx = _model->indexForPath(folder, myFolder);
             if (theIndx.isValid()) {
                 msg += QString::fromLatin1("<a href=\"%1?folder=%2\">%1</a>")
                            .arg(Utility::escape(myFolder), Utility::escape(folder->alias()));

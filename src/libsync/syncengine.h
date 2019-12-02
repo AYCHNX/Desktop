@@ -81,7 +81,7 @@ public:
     void setIgnoreHiddenFiles(bool ignore) { _csync_ctx->ignore_hidden_files = ignore; }
 
     ExcludedFiles &excludedFiles() { return *_excludedFiles; }
-    //Utility::StopWatch &stopWatch() { return _stopWatch; }
+    Utility::StopWatch &stopWatch() { return _stopWatch; }
     SyncFileStatusTracker &syncFileStatusTracker() { return *_syncFileStatusTracker; }
 
     /* Returns whether another sync is needed to complete the sync */
@@ -112,11 +112,6 @@ public:
      * sync's style.
      */
     void setLocalDiscoveryOptions(LocalDiscoveryStyle style, std::set<QByteArray> paths = {});
-
-    void updateLocalFileTree(const QString &path, csync_instructions_e instruction);
-	void updateFuseCreatedFile(const QString &path, bool is_fuse_created_file);
-
-    int localTreeSize();
 
     /**
      * Returns whether the given folder-relative path should be locally discovered
@@ -315,7 +310,7 @@ private:
     /** The kind of local discovery the last sync run used */
     LocalDiscoveryStyle _lastLocalDiscoveryStyle = LocalDiscoveryStyle::FilesystemOnly;
     LocalDiscoveryStyle _localDiscoveryStyle = LocalDiscoveryStyle::FilesystemOnly;
-    //std::set<QByteArray> _localDiscoveryPaths;
+    std::set<QByteArray> _localDiscoveryPaths;
 };
 }
 

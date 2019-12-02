@@ -129,10 +129,10 @@ public:
      * return a QModelIndex for the given path within the given folder.
      * Note: this method returns an invalid index if the path was not fetched from the server before
      */
-    QModelIndex indexForPath(const QString &path) const;
+    QModelIndex indexForPath(Folder *f, const QString &path) const;
 
 public slots:
-    void slotUpdateFolderState();
+    void slotUpdateFolderState(Folder *);
     void slotApplySelectiveSync();
     void resetFolders();
     void slotSyncAllPendingBigFolders();
@@ -143,7 +143,7 @@ private slots:
     void slotUpdateDirectories(const QStringList &);
     void slotGatherPermissions(const QString &name, const QMap<QString, QString> &properties);
     void slotLscolFinishedWithError(QNetworkReply *r);
-    void slotFolderSyncStateChange();
+    void slotFolderSyncStateChange(Folder *f);
     void slotFolderScheduleQueueChanged();
     void slotNewBigFolder();
 

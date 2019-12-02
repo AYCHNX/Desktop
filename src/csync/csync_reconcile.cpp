@@ -150,12 +150,7 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
                 cur->instruction = CSYNC_INSTRUCTION_NEW;
                 break;
             }
-			if (ctx->statedb->getSyncMode(cur->path) == OCC::SyncJournalDb::SYNCMODE_NONE)
-			{
-				/* Do not remove files in a directory that was not open yet */	
-				break;
-			}
-			cur->instruction = CSYNC_INSTRUCTION_REMOVE;
+            cur->instruction = CSYNC_INSTRUCTION_REMOVE;
             break;
         case CSYNC_INSTRUCTION_EVAL_RENAME: {
             // By default, the EVAL_RENAME decays into a NEW
@@ -311,7 +306,7 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
                     is_conflict = false;
                 } else {
                     // If the size or mtime is different, it's definitely a conflict.
-                    is_conflict = ((other->size != cur->size) || (other->modtime != cur->modtime)) && !(cur->is_fuse_created_file);
+                    is_conflict = ((other->size != cur->size) || (other->modtime != cur->modtime));
 
                     // It could be a conflict even if size and mtime match!
                     //
@@ -364,22 +359,13 @@ static void _csync_merge_algorithm_visitor(csync_file_stat_t *cur, CSYNC * ctx) 
                     // sizes and mtimes pops up when the local database is lost for
                     // whatever reason.
                 }
-
                 if (ctx->current == REMOTE_REPLICA) {
                     // If the files are considered equal, only update the DB with the etag from remote
                     cur->instruction = is_conflict ? CSYNC_INSTRUCTION_CONFLICT : CSYNC_INSTRUCTION_UPDATE_METADATA;
                     other->instruction = CSYNC_INSTRUCTION_NONE;
                 } else {
                     cur->instruction = CSYNC_INSTRUCTION_NONE;
-					if (is_conflict)
-						other->instruction = CSYNC_INSTRUCTION_CONFLICT;
-					else {
-						if(other->type == ItemTypeDirectory && cur->type == ItemTypeDirectory)
-							other->instruction = CSYNC_INSTRUCTION_UPDATE_METADATA;
-						else
-							other->instruction = (!cur->is_fuse_created_file) ? CSYNC_INSTRUCTION_UPDATE_METADATA : CSYNC_INSTRUCTION_SYNC;
-					}
-						
+                    other->instruction = is_conflict ? CSYNC_INSTRUCTION_CONFLICT : CSYNC_INSTRUCTION_UPDATE_METADATA;
                 }
 
                 break;

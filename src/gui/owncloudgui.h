@@ -91,7 +91,7 @@ public slots:
     void slotShowSettings();
     void slotShowSyncProtocol();
     void slotShutdown();
-    void slotSyncStateChange();
+    void slotSyncStateChange(Folder *folder);
     void slotTrayClicked(QSystemTrayIcon::ActivationReason reason);
     void slotToggleLogBrowser();
     void slotOpenOwnCloud();

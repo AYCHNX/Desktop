@@ -298,9 +298,8 @@ static int _csync_detect_update(CSYNC *ctx, std::unique_ptr<csync_file_stat_t> f
               return -1;
           }
 
-          // Default to NEW unless we're sure it's a rename or fuse is telling otherwise
-   //       if (fs->instruction != CSYNC_INSTRUCTION_SYNC)
-			//fs->instruction = CSYNC_INSTRUCTION_NEW;
+          // Default to NEW unless we're sure it's a rename.
+          fs->instruction = CSYNC_INSTRUCTION_NEW;
 
           bool isRename =
               base.isValid() && base._type == fs->type
@@ -447,7 +446,8 @@ out:
 
   ctx->current_fs = fs.get();
 
-  qCInfo(lcUpdate) << "file:" << fs->path << "instruction: " << csync_instruction_str(fs->instruction);
+  qCInfo(lcUpdate, "file: %s, instruction: %s <<=", fs->path.constData(),
+      csync_instruction_str(fs->instruction));
 
   QByteArray path = fs->path;
   switch (ctx->current) {
@@ -550,11 +550,6 @@ static bool fill_tree_from_db(CSYNC *ctx, const char *uri)
 
             st->instruction = CSYNC_INSTRUCTION_IGNORE;
         }
-
-        /*  check if it is offline */
-        //if(ctx->statedb->getSyncMode(rec._path) != OCC::SyncJournalDb::SyncMode::SYNCMODE_OFFLINE)
-        //    st->instruction = CSYNC_INSTRUCTION_IGNORE;
-        qDebug() << "UPDATE #######################" << rec._path << st->instruction;
 
         /* store into result list. */
         files[rec._path] = std::move(st);
@@ -673,13 +668,21 @@ int csync_ftw(CSYNC *ctx, const char *uri, csync_walker_fn fn,
       goto error;
   }
 
-  if (ctx->current == REMOTE_REPLICA) {
-      qDebug() << "ALL GOOD!";
-  } else {
-      qDebug() << "IT WILL BREAK!";
-  }
+  while (true) {
+    // Get the next item in the directory
+    errno = 0;
+    dirent = csync_vio_readdir(ctx, dh);
+    if (!dirent) {
+        if (errno != 0) {
+            // Note: Windows vio converts any error into EACCES
+            qCWarning(lcUpdate, "readdir failed for file in %s - errno %d", uri, errno);
+            goto error;
+        }
 
-  while ((dirent = csync_vio_readdir(ctx, dh))) {
+        // Normal case: End of items in directory
+        break;
+    }
+
     /* Conversion error */
     if (dirent->path.isEmpty() && !dirent->original_path.isEmpty()) {
         ctx->status_code = CSYNC_STATUS_INVALID_CHARACTERS;

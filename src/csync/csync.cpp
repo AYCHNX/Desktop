@@ -48,9 +48,9 @@
 #include "csync_rename.h"
 #include "common/c_jhash.h"
 #include "common/syncjournalfilerecord.h"
-#include <common/asserts.h>
 
 Q_LOGGING_CATEGORY(lcCSync, "sync.csync.csync", QtInfoMsg)
+
 
 csync_s::csync_s(const char *localUri, OCC::SyncJournalDb *statedb)
   : statedb(statedb)
@@ -66,10 +66,6 @@ csync_s::csync_s(const char *localUri, OCC::SyncJournalDb *statedb)
 
 int csync_update(CSYNC *ctx) {
   int rc = -1;
-
-  if(ctx->fuseEnabled){
-    qCInfo(lcCSync, "Running FUSE!");
-  }
 
   if (ctx == NULL) {
     errno = EBADF;
@@ -87,42 +83,29 @@ int csync_update(CSYNC *ctx) {
 
   /* update detection for local replica */
   QElapsedTimer timer;
+  timer.start();
+  ctx->current = LOCAL_REPLICA;
 
-  /* we don't do local discovery if fuse is in use */
-  if(!ctx->fuseEnabled){
-      timer.start();
-      ctx->current = LOCAL_REPLICA;
+  qCInfo(lcCSync, "## Starting local discovery ##");
 
-      qCInfo(lcCSync, "## Starting local discovery ##");
-
-      rc = csync_ftw(ctx, ctx->local.uri, csync_walker, MAX_DEPTH);
-      if (rc < 0) {
-        if(ctx->status_code == CSYNC_STATUS_OK) {
-            ctx->status_code = csync_errno_to_status(errno, CSYNC_STATUS_UPDATE_ERROR);
-        }
-        return rc;
-      }
-
-      qCInfo(lcCSync) << "Update detection for local replica took" << timer.elapsed() / 1000.
-                      << "seconds walking" << ctx->local.files.size() << "files";
-      csync_memstat_check();
+  rc = csync_ftw(ctx, ctx->local.uri, csync_walker, MAX_DEPTH);
+  if (rc < 0) {
+    if(ctx->status_code == CSYNC_STATUS_OK) {
+        ctx->status_code = csync_errno_to_status(errno, CSYNC_STATUS_UPDATE_ERROR);
+    }
+    return rc;
   }
+
+  qCInfo(lcCSync) << "Update detection for local replica took" << timer.elapsed() / 1000.
+                  << "seconds walking" << ctx->local.files.size() << "files";
+  csync_memstat_check();
 
   /* update detection for remote replica */
   timer.restart();
-
-  std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-  qDebug() << "LOCAL ######################################################";
-  while (it != ctx->local.files.end()) {
-    qDebug() << "localFile->file_id " << it->second->file_id;
-    qDebug() << "localFile->path " << it->second->path;
-    qDebug() << "localFile->instruction " << it->second->instruction;
-    it++;
-  }
-  qDebug() << "######################################################";
+  ctx->current = REMOTE_REPLICA;
 
   qCInfo(lcCSync, "## Starting remote discovery ##");
-  ctx->current = REMOTE_REPLICA;
+
   rc = csync_ftw(ctx, "", csync_walker, MAX_DEPTH);
   if (rc < 0) {
       if(ctx->status_code == CSYNC_STATUS_OK) {
@@ -130,16 +113,6 @@ int csync_update(CSYNC *ctx) {
       }
       return rc;
   }
-
-  std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it2 = ctx->remote.files.begin();
-  qDebug() << "REMOTE ######################################################";
-  while (it2 != ctx->remote.files.end()) {
-      qDebug() << "remote->file_id " << it2->second->file_id;
-      qDebug() << "remote->path " << it2->second->path;
-      qDebug() << "remote->instruction " << it2->second->instruction;
-      it2++;
-  }
-  qDebug() << "######################################################";
 
 
   qCInfo(lcCSync) << "Update detection for remote replica took" << timer.elapsed() / 1000.
@@ -264,8 +237,7 @@ int csync_s::reinitialize() {
   remote.read_from_db = 0;
   read_remote_from_db = true;
 
-  //FUSE
-  //local.files.clear();
+  local.files.clear();
   remote.files.clear();
 
   renames.folder_renamed_from.clear();
@@ -354,195 +326,6 @@ int  csync_abort_requested(CSYNC *ctx)
   }
 }
 
-bool cysnc_update_file(CSYNC *ctx, const char *absolutePath, const QByteArray &relativePath, const QByteArray &fileName, csync_instructions_e instruction)
-{
-    if (ctx->local.files.findFile(relativePath)) {
-      ctx->local.files.findFile(relativePath)->instruction = instruction;
-
-	  //std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-      qDebug() << "## FOUND FILE IN TREE ######################################################" << relativePath << ctx->local.files.findFile(relativePath)->instruction;
-    //  while (it != ctx->local.files.end()) {
-    //      qDebug() << "localFile->file_id " << it->second->file_id;
-    //      qDebug() << "localFile->path " << it->second->path;
-    //      qDebug() << "localFile->original_path " << it->second->original_path;
-    //      qDebug() << "localFile->instruction " << it->second->instruction;
-		  //qDebug() << "localFile->is_fuse_created_file " << it->second->is_fuse_created_file;
-    //      it++;
-    //  }
-    //  qDebug() << "######################################################";
-
-      return true;
-
-    } else {
-		//qDebug() << "ADDING FILE TO TREE!! ######################################################" << absolutePath << relativePath << fileName;
-        // do the whole process for a single file
-        std::unique_ptr<csync_file_stat_t> newfile;
-        csync_file_stat_t *previous_fs = NULL;
-        csync_vio_handle_t *dh = NULL;
-        unsigned int depth = MAX_DEPTH;
-        QByteArray filenameBuffer;
-        QByteArray fullpath;
-        int read_from_db = 0;
-
-        ctx->current = LOCAL_REPLICA;
-		dh = csync_vio_opendir(ctx, absolutePath);
-        if(dh){
-            newfile = csync_vio_readfile(dh, absolutePath, fileName);
-
-            if (newfile) {
-				newfile->instruction = instruction;
-
-				// csync_walker job
-
-				/* Conversion error */
-				if (newfile->path.isEmpty() && !newfile->original_path.isEmpty()) {
-					ctx->status_code = CSYNC_STATUS_INVALID_CHARACTERS;
-					ctx->error_string = c_strdup(newfile->original_path);
-					newfile->original_path.clear();
-					if (dh != nullptr) {
-					  csync_vio_closedir(ctx, dh);
-					}
-					return false;
-				}
-
-				// At this point dirent->path only contains the file name.
-				filenameBuffer = newfile->path;
-                if (filenameBuffer.isEmpty()) {
-				  ctx->status_code = CSYNC_STATUS_READDIR_ERROR;
-				  if (dh != nullptr) {
-					csync_vio_closedir(ctx, dh);
-				  }
-				  return false;
-				}
-
-				if (absolutePath[0] == '\0') {
-					fullpath = filenameBuffer;
-				} else {
-                    fullpath = QByteArray() % absolutePath % '/' % filenameBuffer;
-				}
-
-				/* if the filename starts with a . we consider it a hidden file
-				 * For windows, the hidden state is also discovered within the vio
-				 * local stat function.
-				 */
-                 if (filenameBuffer[0] == '.') {
-					if (filenameBuffer != ".sys.admin#recall#") { /* recall file shall not be ignored (#4420) */
-						newfile->is_hidden = true;
-					}
-				}
-
-				// Now process to have a relative path to the sync root for the local replica, or to the data root on the remote.
-				newfile->path = fullpath;
-				if (ctx->current == LOCAL_REPLICA) {
-					ASSERT(newfile->path.startsWith(ctx->local.uri)); // path is relative to uri
-					// "len + 1" to include the slash in-between.
-					newfile->path = newfile->path.mid(strlen(ctx->local.uri) + 1);
-				}
-
-				//previous_fs = ctx->current_fs;
-				//bool recurse = newfile->type == ItemTypeDirectory;
-
-				/* Call walker for the  file */
-				int rc = csync_walker(ctx, std::move(newfile));
-				/* this function may update ctx->current and ctx->read_from_db */
-
-				if (rc < 0) {
-				  if (CSYNC_STATUS_IS_OK(ctx->status_code)) {
-					  ctx->status_code = csync_errno_to_status(errno, CSYNC_STATUS_UPDATE_ERROR);
-					  return false;
-				  }
-				  if (dh != nullptr) {
-					csync_vio_closedir(ctx, dh);
-				  }
-				  return false;
-				}
-
-
-				// if it is a folder look into the files
-				// CSYNC *ctx, const char *uri, const QByteArray &key, csync_instructions_e instruction
-				//if (recurse && rc == 0) {
-				//	qDebug() << "FOUND DIRECTORY ######################################################" << absolutePath << relativePath << fileName;
-				//	rc = cysnc_update_file(ctx, absolutePath, relativePath, fileName, instruction);
-				//	if (!rc) {
-				//	ctx->current_fs = previous_fs;
-				//	if (dh != nullptr) {
-				//		csync_vio_closedir(ctx, dh);
-				//	}
-				//		return false;
-				//	}
-
-				//  if (ctx->current_fs && !ctx->current_fs->child_modified
-				//	  && ctx->current_fs->instruction == CSYNC_INSTRUCTION_EVAL) {
-				//	  if (ctx->current == REMOTE_REPLICA) {
-				//		  ctx->current_fs->instruction = CSYNC_INSTRUCTION_UPDATE_METADATA;
-				//	  } else {
-				//		  ctx->current_fs->instruction = CSYNC_INSTRUCTION_NONE;
-				//	  }
-				//  }
-
-				//  if (ctx->current_fs && previous_fs && ctx->current_fs->has_ignored_files) {
-				//	  /* If a directory has ignored files, put the flag on the parent directory as well */
-				//	  previous_fs->has_ignored_files = ctx->current_fs->has_ignored_files;
-				//  }
-				//}
-
-				//if (ctx->current_fs && previous_fs && ctx->current_fs->child_modified) {
-				//	/* If a directory has modified files, put the flag on the parent directory as well */
-				//	previous_fs->child_modified = ctx->current_fs->child_modified;
-				//}
-
-				//ctx->current_fs = previous_fs;
-				ctx->remote.read_from_db = read_from_db;
-
-				csync_vio_closedir(ctx, dh);
-				qCDebug(lcCSync, " <= Closing walk for %s with read_from_db %d", absolutePath, read_from_db);
-
-				ctx->current = REMOTE_REPLICA;
-
-				//std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-                qDebug() << "## AFTER ADDING TO LOCAL ######################################################" << fullpath;
-    //            while (it != ctx->local.files.end()) {
-    //                qDebug() << "localFile->file_id " << it->second->file_id;
-    //                qDebug() << "localFile->path " << it->second->path;
-    //                qDebug() << "localFile->original_path " << it->second->original_path;
-    //                qDebug() << "localFile->instruction " << it->second->instruction;
-    //                it++;
-    //            }
-    //            qDebug() << "######################################################";
-
-				return true;
-			}
-        }
-
-    }
-
-    return false;
-}
-
-bool cysnc_update_is_fuse_created_file(CSYNC *ctx, const QByteArray &relativePath, bool is_fuse_created_file)
-{
-	if (ctx->local.files.findFile(relativePath)) {
-		ctx->local.files.findFile(relativePath)->is_fuse_created_file = is_fuse_created_file;
-
-		//std::unordered_map<ByteArrayRef, std::unique_ptr<csync_file_stat_t>, ByteArrayRefHash>::iterator it = ctx->local.files.begin();
-		qDebug() << "cysnc_update_is_fuse_created_file ######################################################" << relativePath << ctx->local.files.findFile(relativePath)->is_fuse_created_file;
-		//while (it != ctx->local.files.end()) {
-		//	qDebug() << "localFile->file_id " << it->second->file_id;
-		//	qDebug() << "localFile->path " << it->second->path;
-		//	qDebug() << "localFile->original_path " << it->second->original_path;
-		//	qDebug() << "localFile->instruction " << it->second->instruction;
-		//	qDebug() << "localFile->is_fuse_created_file " << it->second->is_fuse_created_file;
-		//	it++;
-		//}
-		//qDebug() << "######################################################";
-
-		return true;
-
-	}
-
-	return false;
-}
-
 std::unique_ptr<csync_file_stat_t> csync_file_stat_s::fromSyncJournalFileRecord(const OCC::SyncJournalFileRecord &rec)
 {
     std::unique_ptr<csync_file_stat_t> st(new csync_file_stat_t);
@@ -559,4 +342,3 @@ std::unique_ptr<csync_file_stat_t> csync_file_stat_s::fromSyncJournalFileRecord(
     st->e2eMangledName = rec._e2eMangledName;
     return st;
 }
-
