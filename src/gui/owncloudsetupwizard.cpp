@@ -336,10 +336,6 @@ void OwncloudSetupWizard::slotConnectToOCUrl(const QString &url)
                                             .arg(url));
 
     testOwnCloudConnect();
-
-	emit _ocWizard->basicSetupFinished(1);
-    _ocWizard->close();
-    emit ownCloudWizardDone(0);
 }
 
 void OwncloudSetupWizard::testOwnCloudConnect()
@@ -596,13 +592,13 @@ void OwncloudSetupWizard::finalizeSetup(bool success)
             _ocWizard->appendToConfigurationLog(
                 tr("A sync connection from %1 to remote directory %2 was set up.")
                     .arg(localFolder, _remoteFolder));
-            _ocWizard->beforeSuccessfulStep();
         }
         _ocWizard->appendToConfigurationLog(QLatin1String(" "));
         _ocWizard->appendToConfigurationLog(QLatin1String("<p><font color=\"green\"><b>")
             + tr("Successfully connected to %1!")
                   .arg(Theme::instance()->appNameGUI())
             + QLatin1String("</b></font></p>"));
+        _ocWizard->successfulStep();
     } else {
         // ### this is not quite true, pass in the real problem as optional parameter
         _ocWizard->appendToConfigurationLog(QLatin1String("<p><font color=\"red\">")
@@ -646,21 +642,33 @@ void OwncloudSetupWizard::slotAssistantFinished(int result)
         // is changed.
         auto account = applyAccountChanges();
 
-        ConfigFile cfgFile;
-        QString localFolder = FolderDefinition::prepareLocalPath(cfgFile.defaultFileStreamMirrorPath());
+        QString localFolder = FolderDefinition::prepareLocalPath(_ocWizard->localFolder());
 
-        qCInfo(lcWizard) << "Adding folder definition for" << localFolder << _remoteFolder;
-        FolderDefinition folderDefinition;
-        folderDefinition.localPath = localFolder;
-        folderDefinition.targetPath = FolderDefinition::prepareTargetPath(_remoteFolder);
-        folderDefinition.ignoreHiddenFiles = folderMan->ignoreHiddenFiles();
-        if (folderMan->navigationPaneHelper().showInExplorerNavigationPane())
-            folderDefinition.navigationPaneClsid = QUuid::createUuid();
+        bool startFromScratch = _ocWizard->field("OCSyncFromScratch").toBool();
+        if (!startFromScratch || ensureStartFromScratch(localFolder)) {
+            qCInfo(lcWizard) << "Adding folder definition for" << localFolder << _remoteFolder;
+            FolderDefinition folderDefinition;
+            folderDefinition.localPath = localFolder;
+            folderDefinition.targetPath = FolderDefinition::prepareTargetPath(_remoteFolder);
+            folderDefinition.ignoreHiddenFiles = folderMan->ignoreHiddenFiles();
+            if (folderMan->navigationPaneHelper().showInExplorerNavigationPane())
+                folderDefinition.navigationPaneClsid = QUuid::createUuid();
 
-        folderMan->addFolder(account, folderDefinition);
-        _ocWizard->appendToConfigurationLog(tr("<font color=\"green\"><b>Local sync folder %1 successfully created!</b></font>").arg(localFolder));
+            auto f = folderMan->addFolder(account, folderDefinition);
+            if (f) {
+                f->journalDb()->setSelectiveSyncList(SyncJournalDb::SelectiveSyncBlackList,
+                    _ocWizard->selectiveSyncBlacklist());
+                if (!_ocWizard->isConfirmBigFolderChecked()) {
+                    // The user already accepted the selective sync dialog. everything is in the white list
+                    f->journalDb()->setSelectiveSyncList(SyncJournalDb::SelectiveSyncWhiteList,
+                        QStringList() << QLatin1String("/"));
+                }
+            }
+            _ocWizard->appendToConfigurationLog(tr("<font color=\"green\"><b>Local sync folder %1 successfully created!</b></font>").arg(localFolder));
+        }
     }
-    _ocWizard->successfulStep();
+
+    // notify others.
     emit ownCloudWizardDone(result);
 }
 
