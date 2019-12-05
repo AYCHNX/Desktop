@@ -28,7 +28,6 @@
 #include <QRunnable>
 #include <QThreadPool>
 #include <QStorageInfo>
-#include "syncwrapper.h"
 
 namespace OCC {
 
@@ -92,27 +91,14 @@ private:
     unsigned long long freeBytesAvailable = 0;
 
 	// To sync
-	OCC::SyncWrapper *_syncWrapper;
     QMutex _mutex;
-    QWaitCondition _syncCondition;
     QWaitCondition _dirCondition;
 
 signals:
 	void startRemoteFileListJob(QString path);
 
-	// To sync: propagate FUSE operations to the sync engine
-    void addToFileTree(int type, const QString path);
-    void createItem(const QString path);
-    void openFile(const QString path);
-    void writeFile(const QString path);
-    void deleteItem(const QString path);
-    void move(const QString path);
-
 public slots:
 	void folderFileListFinish(OCC::DiscoveryDirectoryResult *dr);
-
-	// To sync: notify syncing is done
-    void slotSyncFinish();
 };
 
 } // namespace OCC
