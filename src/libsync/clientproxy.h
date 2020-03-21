@@ -43,9 +43,6 @@ public:
 
 public slots:
     void setupQtProxyFromConfig();
-
-private:
-    const char *proxyTypeToCStr(QNetworkProxy::ProxyType type);
 };
 
 class SystemProxyRunnable : public QObject, public QRunnable
