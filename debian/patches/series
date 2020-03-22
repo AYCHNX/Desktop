@@ -1,5 +1,7 @@
 0001-fix-installationpath-of-dolphin-plugin.patch
-0002-disable-updatecheck.patch
 0003-use_system_buildflags.patch
 0004-sane-cmake.patch
 0005-fix-wrong-include.patch
+0006-libssl.patch
+0007-qt5.5.patch
+0008-qt5.5-compat.patch
