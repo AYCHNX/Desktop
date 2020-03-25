@@ -1,4 +1,256 @@
-nextcloud-desktop (2.6.2-1) oldstable; urgency=medium
+nextcloud-desktop (2.6.4-1) stretch; urgency=medium
+
+  [ Michael Schuster ]
+  * Fix: Apply http2 patch from owncloud #1573 - only with Qt >= 5.8
+  * Upgrade for Qt 5.12.5 in docker-ci
+  * Move .desktop file path to new env var to avoid duplicates
+  * Make AppImage upload optional and add timeout
+  * Fix dir in upload script
+  * Bump Qt 5.12.5 image
+  * Fix: escape env vars
+  * Fix: add /usr/local/lib to LD_LIBRARY_PATH for OpenSSL 1.1.1
+  * Add timestamp to Mac installer code signing
+
+  [ Christoph Wurst ]
+  * Fix legal notice year
+
+  [ István Váradi ]
+  * Build for Debian stable and oldstable
+
+  [ Michael Schuster ]
+  * macOS build: Avoid the Get-Task-Allow Entitlement (Notarization)
+
+  [ Andreas Wunderlich ]
+  * Revert default remote poll interval back from 5 seconds to 30 seconds
+
+  [ Michael Schuster ]
+  * Fix remote wipe keychain storage (issue #1592)
+  * Use ReadPasswordJob::finished for ReadPasswordJob
+  * Fix copyright year in MacOSXBundleInfo.plist.in for 2019
+
+  [ Dominique Fuchs ]
+  * Fixed typo preventing successful path rename on Win and modified ASSERT for Window path styles
+  * Don't need a second if for non-Windows, using Qt macro for platform check
+
+  [ Camila San ]
+  * Merge the list of ignored files/symlinks into one Activity notification.
+
+  [ Johannes Lorenz ]
+  * Fix clang's variadic macro warnings
+
+  [ Michael Schuster ]
+  * MSVC Fix for PR #1526: Fix clang's variadic macro warnings
+
+  [ Corentin Noël ]
+  * Build with libcloudproviders on debian and in the AppImage
+
+  [ István Váradi ]
+  * Add libdbus-1-dev to the build dependencies
+
+  [ David Kahles ]
+  * Compare QDateTime objects more efficient
+
+  [ Roeland Jago Douma ]
+  * Fall back to old login flow on GS as this is not yet ready
+
+  [ Michael Schuster ]
+  * Fall back to old login flow on GS as this is not yet ready (#2: re-auth)
+
+  [ Joas Schilling ]
+  * Improve the translation of "Share via …"
+  * Fix some translations
+  * Use … instead of 3 dots
+
+  [ Felix Eckhofer ]
+  * Fix typo
+  * Use user-provided username in `displayName()`
+
+  [ Michael Schuster ]
+  * Windows: Workaround for storing >= 4k (4096 bit) client-cert SSL keys
+  * Refactoring: Windows workaround for >= 4k (4096 bit) client-cert SSL keys
+  * Remote Wipe: Implement hack to allow deleting all keychain entries (SSL certs & keys)
+  * Fix Remote Wipe keychain storage
+  * Fix member variable name from last refactoring (Windows code)
+  * Fix Windows key-chunk deletion (too paranoid)
+  * Fix deleteKeychainEntries: Stay consistent with job->setInsecureFallback(false)
+  * Remove submodule qtmacgoodies and the MacSettingsDialog class
+  * Fix SSL-button's info background color for Dark Mode
+  * Pick from upstream: Fix too low contrast when tab is selected
+  * Implement and move some colour-aware helper methods into the Theme class
+  * Make SettingsDialog background-aware (Dark-/Light-Mode switching)
+  * Make the ShareDialog background-aware (Dark-/Light-Mode switching)
+  * macOS: Rename 'Explorer' appropriately on non-Windows
+  * Update translations
+
+  [ Camila San ]
+  * Bump version to 2.6.2
+
+  [ Michael Schuster ]
+  * Fix build for stable-2.6 (changes from PR #1651)
+  * Fix Activity List: Add check to avoid first empty entry
+  * Change Dark Mode link colour
+  * Add new Theme helper method to custom-colourize links
+  * Change error link colour in AccountSettings::showConnectionLabel
+  * Make AccountSettings and ActivitySettings background-aware (Dark-/Light-Mode switching)
+  * Refactor ActivitySettings: Rename member variable ui to _ui
+  * Make ActivityItemDelegate background- and selection-aware (Dark-/Light-Mode switching)
+  * Remove unnecessary breaks in ActivityListModel
+  * Remove unnecessary string translation and copy in ActivityItemDelegate
+  * Make OwncloudWizard and its pages background-aware (Dark-/Light-Mode switching)
+  * Make all ProgressIndicator's background-aware (Dark-/Light-Mode switching)
+  * Mac and high-dpi displays: Add workaround in ActivityItemDelegate to show full uncropped activity's actionText and timeText
+  * Fix build (missing refactoring)
+  * Show date and time in activity log (fixes issue #1683)
+  * Fix crash in ActivityListModel (fixes #1693)
+  * Fix folder opening in ActivityListModel
+  * Fix issue #1237: White text on almost-white background
+  * Flow2: Bring account setup wizard to top (raise) on auth result
+  * Flow2: Poll for auth result upon account setup wizard window activation
+  * Flow2: Use ownCloudGui::raiseDialog to bring account setup wizard to top (raise) on auth result
+  * Add helper slots and signals to catch SettingsDialog's window activation events
+  * WebFlowCredentialsDialog: Bring re-auth dialog to top (raise) upon showing SettingsDialog
+  * Flow2: Poll for re-auth result upon WebFlowCredentialsDialog window activation
+  * Small fixes and code cleanup
+  * Flow2: Add poll status text, ProgressIndicator and countdown timer
+  * Flow2: Make ProgressIndicator's background-aware (Dark-/Light-Mode switching)
+  * WebFlowCredentialsDialog: Bring re-auth dialog to top (raise) on error
+  * Make WebFlowCredentialsDialog cancellation- and deletion-safe
+  * Add new HeaderBanner class for WebFlowCredentialsDialog
+  * Flow2: Refactor UI into Flow2AuthWidget only and improve Flow2Auth
+  * Flow2AuthWidget: Minor fixes and improvements
+  * Heavy refactoring: Windows workaround for >= 4k (4096 bit) client-cert SSL keys and large certs
+  * Fix date in ActivityWidget and remove unnecessary string conversion
+  * Update translations
+  * Add temporary Flow2 translation (german)
+  * KeychainChunk: Fix error handling in ReadJob::slotReadJobDone
+
+  [ JanDragon ]
+  * Updated year in legalnotice.cpp
+
+  [ Roeland Jago Douma ]
+  * Ask for password on password protected link shares
+
+  [ Michael Schuster ]
+  * Fix Explorer integration on Windows and the crash on other systems
+
+  [ JanDragon ]
+  * Welcome to 2020
+
+  [ ritsute ]
+  * Handle broken shared file error gracefully
+
+  [ Brandon ]
+  * Correct wrong variable
+  * Correct wrong variable
+
+  [ Roeland Jago Douma ]
+  * Windows 7 is out of support
+
+  [ Michael Schuster ]
+  * Linux AppImage build script: Use QtKeyChain master
+
+  [ Julius Härtl ]
+  * Use system proxy by default if no config file is present
+
+  [ Corentin Noël ]
+  * Make sure that the libcloudprovider integration is using a valid D-Bus path
+
+  [ XNG ]
+  * apply http2 qt resend patch from owncloud
+  * apply http2 qt resend patch from owncloud
+  * apply http2 qt resend patch from owncloud
+
+  [ Corentin Noël ]
+  * Install libcloudproviders files by default on debian
+
+  [ Andre-Schuiki ]
+  * Update autoupdate.rst
+
+  [ István Váradi ]
+  * Do not install files related to cloud providers under Stretch
+
+  [ Corentin Noël ]
+  * Start the client in background if activated by D-Bus
+
+  [ rakekniven ]
+  * l10n: Changed spelling of "user name" to "username"
+  * l10n: Triple dot to ellipsis
+  * Triple dot to ellipsis
+  * l10n: Triple dot to ellipsis
+  * l10n: Triple dot to ellipsis
+  * l10n: Changed grammar
+  * Changed product name to Nextcloud
+
+  [ Michael Schuster ]
+  * Add UserInfo class and fetch quota via API instead of PropfindJob
+  * Code cleanup
+  * Fix Tests linkage (missed UserInfo.cpp in CMakeLists.txt)
+  * Update translations
+  * Bump version to 2.6.3
+
+  [ Nextcloud bot ]
+  * [tx-robot] updated from transifex
+  * [tx-robot] updated from transifex
+  * [tx-robot] updated from transifex
+
+  [ Michael Schuster ]
+  * Updater: Add query-parameter 'updatesegment' to the update check
+
+  [ Nextcloud bot ]
+  * [tx-robot] updated from transifex
+  * [tx-robot] updated from transifex
+  * [tx-robot] updated from transifex
+
+  [ rakekniven ]
+  * l10n: Change case of one word
+  * l10n: Removed blank before colon
+  * l10n: Removed colon from translation
+  * l10n: Change spelling of "webdav"
+
+  [ Nextcloud bot ]
+  * [tx-robot] updated from transifex
+  * [tx-robot] updated from transifex
+  * [tx-robot] updated from transifex
+  * [tx-robot] updated from transifex
+  * [tx-robot] updated from transifex
+  * [tx-robot] updated from transifex
+
+  [ Michael Schuster ]
+  * Fix Explorer integration re-save (fixes issue #1807)
+  * Fix Explorer integration: Hide option on non-Windows
+  * ActivityListModel: Show full date and time as a Tooltip only
+
+  [ XNG ]
+  * Disable http2 for now due to Qt bug
+
+  [ Michael Schuster ]
+  * Fix build with older Qt: Disable http2 for now due to Qt bug, add env var (upstream)
+
+  [ Nextcloud bot ]
+  * [tx-robot] updated from transifex
+
+  [ Bruno Perel ]
+  * Fix git merge hiccup
+
+  [ Nextcloud bot ]
+  * [tx-robot] updated from transifex
+
+  [ Michael Schuster ]
+  * WebFlowCredentials: Make username comparison case-insensitive (fix #1741)
+  * Fix Explorer pinning: Add fallbacks for Shell commands (fixes #1599)
+
+  [ Christian Kamm ]
+  * Windows: Fix context menu handling only own verbs #7004
+
+  [ Nextcloud bot ]
+  * [tx-robot] updated from transifex
+
+  [ Michael Schuster ]
+  * Bump version to 2.6.4
+
+ -- István Váradi <ivaradi@varadiistvan.hu>  Wed, 25 Mar 2020 18:01:12 +0000
+
+nextcloud-desktop (2.6.2-1) stretch; urgency=medium
 
   * New upstream release.
   * Remove upstream applied patches.
@@ -10,13 +262,13 @@ nextcloud-desktop (2.6.2-1) oldstable; urgency=medium
 
  -- Sandro Knauß <hefee@debian.org>  Sun, 12 Jan 2020 12:28:23 +0100
 
-nextcloud-desktop (2.6.1-3) oldstable; urgency=medium
+nextcloud-desktop (2.6.1-3) stretch; urgency=medium
 
   * Use python3-caja instead of python-caja (Closes: #945674).
 
  -- Sandro Knauß <hefee@debian.org>  Tue, 17 Dec 2019 22:28:22 +0100
 
-nextcloud-desktop (2.6.1-2) oldstable; urgency=medium
+nextcloud-desktop (2.6.1-2) stretch; urgency=medium
 
   [ Norbert Preining ]
   * Add upstream patch upstream_Fix_remote_wipe_keychain_storage.patch
@@ -26,7 +278,7 @@ nextcloud-desktop (2.6.1-2) oldstable; urgency=medium
 
  -- Sandro Knauß <hefee@debian.org>  Sat, 07 Dec 2019 17:10:33 +0100
 
-nextcloud-desktop (2.6.1-1) oldstable; urgency=medium
+nextcloud-desktop (2.6.1-1) stretch; urgency=medium
 
   [ Sandro Knauß ]
   * Update depdends from python-natuilus -> python3-nautilus. (Closes: #942776)
@@ -41,7 +293,7 @@ nextcloud-desktop (2.6.1-1) oldstable; urgency=medium
 
  -- Alf Gaida <agaida@siduction.org>  Sun, 17 Nov 2019 20:35:13 +0100
 
-nextcloud-desktop (2.6.0-1) oldstable; urgency=medium
+nextcloud-desktop (2.6.0-1) stretch; urgency=medium
 
   [ Alf Gaida ]
   * New upstream release
@@ -62,7 +314,7 @@ nextcloud-desktop (2.6.0-1) oldstable; urgency=medium
 
  -- Alf Gaida <agaida@siduction.org>  Thu, 03 Oct 2019 15:12:56 +0200
 
-nextcloud-desktop (2.5.3-1) oldstable; urgency=medium
+nextcloud-desktop (2.5.3-1) stretch; urgency=medium
 
   [ Sandro Knauß ]
   * New upstream release.
@@ -77,14 +329,14 @@ nextcloud-desktop (2.5.3-1) oldstable; urgency=medium
 
  -- Sandro Knauß <hefee@debian.org>  Thu, 29 Aug 2019 20:15:33 +0200
 
-nextcloud-desktop (2.5.1-3) oldstable; urgency=medium
+nextcloud-desktop (2.5.1-3) stretch; urgency=medium
 
   * Fix "Subfolders of moved folders not synced" (Closes: #929079)
     Added 0005-Fixed-Issue-1000-Subfolders-of-moved-folders-not-syn.patch
 
  -- Sandro Knauß <hefee@debian.org>  Thu, 16 May 2019 16:14:50 +0200
 
-nextcloud-desktop (2.5.1-2) oldstable; urgency=medium
+nextcloud-desktop (2.5.1-2) stretch; urgency=medium
 
   [ Adrian Heine ]
   * Fix VCS urls
@@ -94,7 +346,7 @@ nextcloud-desktop (2.5.1-2) oldstable; urgency=medium
 
  -- Sandro Knauß <hefee@debian.org>  Tue, 12 Feb 2019 23:54:02 +0100
 
-nextcloud-desktop (2.5.1-1) oldstable; urgency=medium
+nextcloud-desktop (2.5.1-1) stretch; urgency=medium
 
   * Initial release (Closes: #847613)
 
